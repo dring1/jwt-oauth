@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/dring1/orm/models"
+	"github.com/dring1/gopheringdj/models"
 	"github.com/dring1/orm/reddit"
 	"github.com/jinzhu/gorm"
 )
