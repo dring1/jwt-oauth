@@ -14,4 +14,9 @@ func TestNewConfig(t *testing.T) {
 		So(cfg, ShouldNotBeNil)
 		So(cfg.PrivateKeyPath, ShouldEqual, "keys/test/private_key.pem")
 	})
+
+	Convey("Global config", t, func() {
+		So(Cfg, ShouldNotBeNil)
+		So(Cfg.PrivateKeyPath, ShouldEqual, "keys/test/private_key.pem")
+	})
 }
