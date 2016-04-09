@@ -1,0 +1,5 @@
+{
+  "PublicKeyPath": "keys/test/public_key.pem",
+  "PrivateKeyPath": "keys/test/private_key.pem",
+  "JWTExpirationDelta": 72
+}
