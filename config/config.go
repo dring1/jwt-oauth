@@ -2,8 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
+	"runtime"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -36,11 +39,14 @@ func init() {
 }
 
 func NewConfig(env string) (*Config, error) {
-	data, err := ioutil.ReadFile(environments[env])
-	c := Config{}
+	_, fileName, _, _ := runtime.Caller(1)
+	f := path.Join(path.Dir(fileName), environments[env])
+	fmt.Println(f)
+	data, err := ioutil.ReadFile(f)
 	if err != nil {
 		return nil, err
 	}
+	c := Config{}
 	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return nil, err

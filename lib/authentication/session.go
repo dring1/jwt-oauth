@@ -1,12 +1,11 @@
 package authentication
 
 import (
-	"bufio"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -25,22 +24,27 @@ const (
 
 var authBackendInstance *JWTAuthenticationBackend
 
-func InitJWTAuthenticationBackend() (*JWTAuthenticationBackend, error) {
-	if authBackendInstance == nil {
-		privateKey, err := getPrivateKey()
-		if err != nil {
-			return nil, err
-		}
-		publicKey, err := getPublicKey()
-		if err != nil {
-			return nil, err
-		}
-		authBackendInstance = &JWTAuthenticationBackend{
-			privateKey: privateKey,
-			PublicKey:  publicKey,
-		}
+func NewJWTBackend() (*JWTAuthenticationBackend, error) {
+	rawPrivData, err := ioutil.ReadFile(config.Cfg.PrivateKeyPath)
+	if err != nil {
+		return nil, err
 	}
-
+	privateKey, err := getPrivateKey(rawPrivData)
+	if err != nil {
+		return nil, err
+	}
+	rawPubData, err := ioutil.ReadFile(config.Cfg.PublicKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := getPublicKey(rawPubData)
+	if err != nil {
+		return nil, err
+	}
+	authBackendInstance = &JWTAuthenticationBackend{
+		privateKey: privateKey,
+		PublicKey:  publicKey,
+	}
 	return authBackendInstance, nil
 }
 
@@ -56,23 +60,8 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	return tokenString, nil
 }
 
-func getPrivateKey() (*rsa.PrivateKey, error) {
-	privateKeyFile, err := os.Open(config.Cfg.PrivateKeyPath)
-	defer privateKeyFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	pemfileInfo, _ := privateKeyFile.Stat()
-	size := pemfileInfo.Size()
-	pemBytes := make([]byte, size)
-
-	buffer := bufio.NewReader(privateKeyFile)
-	_, err = buffer.Read(pemBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	data, _ := pem.Decode(pemBytes)
+func getPrivateKey(rawPemData []byte) (*rsa.PrivateKey, error) {
+	data, _ := pem.Decode([]byte(rawPemData))
 	privateKeyImported, err := x509.ParsePKCS1PrivateKey(data.Bytes)
 	if err != nil {
 		return nil, err
@@ -81,27 +70,9 @@ func getPrivateKey() (*rsa.PrivateKey, error) {
 	return privateKeyImported, nil
 }
 
-func getPublicKey() (*rsa.PublicKey, error) {
-	publicKeyFile, err := os.Open(config.Cfg.PublicKeyPath)
-	defer publicKeyFile.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	pemfileinfo, _ := publicKeyFile.Stat()
-	size := pemfileinfo.Size()
-	pembytes := make([]byte, size)
-
-	buffer := bufio.NewReader(publicKeyFile)
-	_, err = buffer.Read(pembytes)
-	if err != nil {
-		return nil, err
-	}
-
-	data, _ := pem.Decode([]byte(pembytes))
-
+func getPublicKey(rawPemData []byte) (*rsa.PublicKey, error) {
+	data, _ := pem.Decode([]byte(rawPemData))
 	publicKeyImported, err := x509.ParsePKIXPublicKey(data.Bytes)
-
 	if err != nil {
 		panic(err)
 	}
