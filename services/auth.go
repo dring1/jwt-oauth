@@ -9,7 +9,7 @@ import (
 )
 
 func Login(requestUser *models.User) (int, []byte) {
-	authBackend := authentication.InitJWTAuthenticationBackend()
+	authBackend, err := authentication.JWTBackend()
 
 	if authBackend.Authenticate(requestUser) {
 		token, err := authBackend.GenerateToken(requestUser.UUID)
@@ -22,4 +22,9 @@ func Login(requestUser *models.User) (int, []byte) {
 	}
 
 	return http.StatusUnauthorized, []byte("")
+}
+
+func RefreshToken(requestUser *models.User) []byte {
+	jwtBackend := authentication.JWTBackend()
+	token, err := jwtBackend.GenerateToken(requestUser.UUID)
 }

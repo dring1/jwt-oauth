@@ -10,6 +10,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dring1/orm/config"
+	"github.com/dring1/orm/models"
 )
 
 type JWTAuthenticationBackend struct {
@@ -24,7 +25,7 @@ const (
 
 var authBackendInstance *JWTAuthenticationBackend
 
-func NewJWTBackend() (*JWTAuthenticationBackend, error) {
+func JWTBackend() (*JWTAuthenticationBackend, error) {
 	rawPrivData, err := ioutil.ReadFile(config.Cfg.PrivateKeyPath)
 	if err != nil {
 		return nil, err
@@ -58,6 +59,21 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 		return "", nil
 	}
 	return tokenString, nil
+}
+
+func (backend *JWTAuthenticationBackend) Authenticate(user *models.User) bool {
+	return true
+}
+
+func (backend *JWTAuthenticationBackend) TimeToExpire(timestamp interface{}) int64 {
+
+	if ts, ok := timestamp.(float64); ok {
+		tm := time.Unix(int64(ts), 0)
+		if remainder := tm.Sub(time.Now()); remainder > 0 {
+			return int64(remainder.Seconds()) + ExpireOffset
+		}
+	}
+	return ExpireOffset
 }
 
 func getPrivateKey(rawPemData []byte) (*rsa.PrivateKey, error) {
