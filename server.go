@@ -11,5 +11,5 @@ import (
 func main() {
 	router := routes.NewRouter()
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
-	http.ListenAndServe(":5000", chain)
+	http.ListenAndServe(":8080", chain)
 }

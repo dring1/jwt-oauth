@@ -6,16 +6,19 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dring1/orm/config"
+	"github.com/dring1/orm/lib/cache"
 	"github.com/dring1/orm/models"
 )
 
 type JWTAuthenticationBackend struct {
 	privateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
+	Cache      *Cache.Cache
 }
 
 const (
@@ -23,13 +26,22 @@ const (
 	ExpireOffset  = 3600
 )
 
-var authBackendInstance *JWTAuthenticationBackend
+var JWTBackendInstance *JWTAuthenticationBackend
 
-func JWTBackend() (*JWTAuthenticationBackend, error) {
+func init() {
+	abi, err := NewJWTBackend()
+	if err != nil {
+		log.Fatal(err)
+	}
+	JWTBackendInstance = abi
+}
+
+func NewJWTBackend() (*JWTAuthenticationBackend, error) {
 	rawPrivData, err := ioutil.ReadFile(config.Cfg.PrivateKeyPath)
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Here")
 	privateKey, err := getPrivateKey(rawPrivData)
 	if err != nil {
 		return nil, err
@@ -38,15 +50,17 @@ func JWTBackend() (*JWTAuthenticationBackend, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	publicKey, err := getPublicKey(rawPubData)
 	if err != nil {
 		return nil, err
 	}
-	authBackendInstance = &JWTAuthenticationBackend{
+	ab := &JWTAuthenticationBackend{
 		privateKey: privateKey,
 		PublicKey:  publicKey,
+		Cache:      Cache.NewCache(),
 	}
-	return authBackendInstance, nil
+	return ab, nil
 }
 
 func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string, error) {
@@ -54,6 +68,7 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	token.Claims["exp"] = time.Now().Add(time.Hour * time.Duration(config.Cfg.JWTExpirationDelta)).Unix()
 	token.Claims["iat"] = time.Now().Unix()
 	token.Claims["sub"] = userUUID
+	log.Println(backend)
 	tokenString, err := token.SignedString(backend.privateKey)
 	if err != nil {
 		return "", nil
@@ -61,8 +76,13 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	return tokenString, nil
 }
 
+// Actually auth
 func (backend *JWTAuthenticationBackend) Authenticate(user *models.User) bool {
 	return true
+}
+
+func (backend *JWTAuthenticationBackend) Logout(tokenString string, token *jwt.Token) error {
+	return nil
 }
 
 func (backend *JWTAuthenticationBackend) TimeToExpire(timestamp interface{}) int64 {
