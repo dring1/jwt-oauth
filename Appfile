@@ -1,0 +1,11 @@
+application {
+  name = "jwt-example"
+  type = "go"
+  dependency {
+    source = "./dependencies/redis"
+  }
+}
+
+customization {
+  go_version = "1.6"
+}

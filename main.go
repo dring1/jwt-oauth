@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/dring1/orm/middlewares"
@@ -11,5 +12,6 @@ import (
 func main() {
 	router := routes.NewRouter()
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
-	http.ListenAndServe(":8080", chain)
+	err := http.ListenAndServe(":8080", chain)
+	log.Fatal(err)
 }
