@@ -4,6 +4,9 @@ application {
   dependency {
     source = "./dependencies/redis"
   }
+  dependency {
+    source = "./dependencies/postgres"
+  }
 }
 
 customization {

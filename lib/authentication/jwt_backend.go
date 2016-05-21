@@ -11,14 +11,11 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dring1/orm/config"
-	"github.com/dring1/orm/lib/cache"
-	"github.com/dring1/orm/models"
 )
 
 type JWTAuthenticationBackend struct {
 	privateKey *rsa.PrivateKey
 	PublicKey  *rsa.PublicKey
-	Cache      *Cache.Cache
 }
 
 const (
@@ -58,17 +55,15 @@ func NewJWTBackend() (*JWTAuthenticationBackend, error) {
 	ab := &JWTAuthenticationBackend{
 		privateKey: privateKey,
 		PublicKey:  publicKey,
-		Cache:      Cache.NewCache(),
 	}
 	return ab, nil
 }
 
-func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string, error) {
+func (backend *JWTAuthenticationBackend) GenerateToken(userID string) (string, error) {
 	token := jwt.New(jwt.SigningMethodRS512)
 	token.Claims["exp"] = time.Now().Add(time.Hour * time.Duration(config.Cfg.JWTExpirationDelta)).Unix()
 	token.Claims["iat"] = time.Now().Unix()
-	token.Claims["sub"] = userUUID
-	log.Println(backend)
+	token.Claims["sub"] = userID
 	tokenString, err := token.SignedString(backend.privateKey)
 	if err != nil {
 		return "", nil
@@ -76,8 +71,8 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userUUID string) (string,
 	return tokenString, nil
 }
 
-// Actually auth
-func (backend *JWTAuthenticationBackend) Authenticate(user *models.User) bool {
+// Insert into cache here ?
+func (backend *JWTAuthenticationBackend) Authenticate(interface{}) bool {
 	return true
 }
 

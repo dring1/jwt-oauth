@@ -16,10 +16,11 @@ func Login(requestUser *models.User) ([]byte, error) {
 		// return unauthorized
 		return []byte(""), nil
 	}
-	token, err := authBackend.GenerateToken(requestUser.UUID)
+	token, err := authBackend.GenerateToken(requestUser.Email)
 	if err != nil {
 		return []byte(""), err
 	}
+	// Insert token into cache
 	response, _ := json.Marshal(authentication.AuthToken{T: token})
 	return response, nil
 
@@ -27,7 +28,7 @@ func Login(requestUser *models.User) ([]byte, error) {
 
 func RefreshToken(requestUser *models.User) ([]byte, error) {
 	jwtBackend := authentication.JWTBackendInstance
-	token, err := jwtBackend.GenerateToken(requestUser.UUID)
+	token, err := jwtBackend.GenerateToken(requestUser.Email)
 	if err != nil {
 		return nil, err
 	}

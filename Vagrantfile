@@ -90,3 +90,4 @@ config.vm.provision "shell", inline: "cd #{dir} && bash #{dir}/main.sh"
     %Q[echo "cd /opt/gopath/src/github.com/dring1/orm" >> /home/vagrant/.profile]
 
 end
+/Users/dring/Code/go/src/github.com/dring1/orm/.otto/compiled/app/dev/Vagrantfile
