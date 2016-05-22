@@ -41,7 +41,7 @@ func Login() ctxh.ContextHandler {
 		}
 
 		// requestUser := new(models.User)
-		token, err := services.Login(u)
+		token, err := services.Login(u.Email)
 		// If user already exists - update last logged in
 		// If User does not exist, create it
 		if err != nil {
@@ -75,7 +75,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&requestUser)
 
 	w.Header().Set("Content-Type", "application/json")
-	token, err := services.RefreshToken(requestUser)
+	token, err := services.RefreshToken(requestUser.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}

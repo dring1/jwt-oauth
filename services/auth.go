@@ -5,39 +5,37 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/dring1/orm/lib/authentication"
-	"github.com/dring1/orm/models"
 )
 
-func Login(requestUser *models.User) ([]byte, error) {
-	authBackend := authentication.JWTBackendInstance
+func Login(key string) ([]byte, error) {
+	authBackend := JWTBackend()
 
-	if ok := authBackend.Authenticate(requestUser); !ok {
+	if ok := JWTBackend().Authenticate(key); !ok {
 		// return unauthorized
 		return []byte(""), nil
 	}
-	token, err := authBackend.GenerateToken(requestUser.Email)
+	token, err := authBackend.GenerateToken(key)
 	if err != nil {
 		return []byte(""), err
 	}
 	// Insert token into cache
-	response, _ := json.Marshal(authentication.AuthToken{T: token})
+	response, _ := json.Marshal(AuthToken{T: token})
 	return response, nil
 
 }
 
-func RefreshToken(requestUser *models.User) ([]byte, error) {
-	jwtBackend := authentication.JWTBackendInstance
-	token, err := jwtBackend.GenerateToken(requestUser.Email)
+func RefreshToken(key string) ([]byte, error) {
+	// jwtBackend := services.JWTBackend
+	token, err := JWTBackend().GenerateToken(key)
 	if err != nil {
 		return nil, err
 	}
-	response, _ := json.Marshal(authentication.AuthToken{T: token})
+	response, _ := json.Marshal(AuthToken{T: token})
 	return response, nil
 }
 
 func Logout(req *http.Request) error {
-	authBackend := authentication.JWTBackendInstance
+	authBackend := JWTBackend()
 	tokenRequest, err := jwt.ParseFromRequest(req, func(token *jwt.Token) (interface{}, error) {
 		return authBackend.PublicKey, nil
 	})

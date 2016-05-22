@@ -1,4 +1,4 @@
-package authentication
+package services
 
 import (
 	"crypto/rsa"
@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"sync"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -23,14 +24,30 @@ const (
 	ExpireOffset  = 3600
 )
 
-var JWTBackendInstance *JWTAuthenticationBackend
+var (
+	jwtOnce            sync.Once
+	jwtBackendInstance *JWTAuthenticationBackend
+)
 
-func init() {
-	abi, err := NewJWTBackend()
-	if err != nil {
-		log.Fatal(err)
-	}
-	JWTBackendInstance = abi
+// func init() {
+// 	abi, err := newjwtbackend()
+// 	if err != nil {
+// 		log.fatal(err)
+// 	}
+// 	JWTBackendInstance = abi
+// }
+
+func JWTBackend() *JWTAuthenticationBackend {
+	once.Do(func() {
+
+		abi, err := NewJWTBackend()
+		if err != nil {
+			log.Fatal(err)
+		}
+		jwtBackendInstance = abi
+
+	})
+	return jwtBackendInstance
 }
 
 func NewJWTBackend() (*JWTAuthenticationBackend, error) {
