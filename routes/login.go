@@ -2,6 +2,7 @@ package routes
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/dghubble/ctxh"
@@ -43,16 +44,28 @@ func init() {
 	}
 }
 
-func LoginRoute(r *mux.Router) *mux.Router {
-	oauth2Config := &oauth2.Config{
-		ClientID:     c.GithubClientID,
-		ClientSecret: c.GithubClientSecret,
-		RedirectURL:  "http://localhost:8080/github/callback",
-		Endpoint:     githubOAuth2.Endpoint,
+func LoginRoute(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
+	log.Println("LOGIN ROUTE")
+
+	if oauth2Config == nil {
+		log.Println("LOGIN config")
+		oauth2Config = &oauth2.Config{
+			ClientID:     c.GithubClientID,
+			ClientSecret: c.GithubClientSecret,
+			RedirectURL:  "http://localhost:8080/github/callback",
+			Endpoint:     githubOAuth2.Endpoint,
+		}
 	}
-	// state param cookies require HTTPS by default; disable for localhost development
 	stateConfig := gologin.DebugOnlyCookieConfig
-	r.Handle("/github/login", ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(oauth2Config, nil))))
-	r.Handle("/github/callback", ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(oauth2Config, controllers.Login(), nil))))
+	log.Println(loginHandler, callbackHandler)
+	// state param cookies require HTTPS by default; disable for localhost development
+	if loginHandler == nil {
+		loginHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(oauth2Config, nil)))
+	}
+	if callbackHandler == nil {
+		callbackHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(oauth2Config, controllers.Login(), nil)))
+	}
+	r.Handle("/github/login", loginHandler)
+	r.Handle("/github/callback", callbackHandler)
 	return r
 }
