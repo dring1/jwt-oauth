@@ -32,23 +32,11 @@ func TestMockHandler(t *testing.T) {
 	defer s.Close()
 	resp, _ := c.Get(s.URL + "/")
 	bs, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal(t, string(bs), "hello!")
+	assert.Equal(t, "hello!", string(bs))
 }
 
 func TestGithubMockHandler(t *testing.T) {
 	config := &oauth2.Config{}
-	// m := mux.NewRouter()
-	// m = LoginRoute(m, nil, nil, config)
-	// handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(200)
-	// 	w.Write([]byte("hello!"))
-	// })
-	// m.Handle("/", handler)
-	// c, _, s := MockServer(m)
-	// defer s.Close()
-	// resp, _ := c.Get(s.URL + "/")
-	// bs, _ := ioutil.ReadAll(resp.Body)
-	// assert.Equal(t, string(bs), "hello!")
 	jsonData := `{"id": 917408, "name": "Alyssa Hacker"}`
 	expectedUser := &gh.User{ID: gh.Int(917408), Name: gh.String("Alyssa Hacker")}
 	proxyClient, server := newGithubTestServer(jsonData)
@@ -79,6 +67,42 @@ func TestGithubMockHandler(t *testing.T) {
 	assert.Equal(t, "success handler called", w.Body.String())
 }
 
+func TestSuccessfulLogin(t *testing.T) {
+	config := &oauth2.Config{}
+	jsonData := `{"id": 917408, "name": "Alyssa Hacker"}`
+	expectedUser := &gh.User{ID: gh.Int(917408), Name: gh.String("Alyssa Hacker")}
+	proxyClient, server := newGithubTestServer(jsonData)
+	defer server.Close()
+	// oauth2 Client will use the proxy client's base Transport
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, proxyClient)
+	anyToken := &oauth2.Token{AccessToken: "any-token"}
+	ctx = oauth2Login.WithToken(ctx, anyToken)
+	success := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
+		githubUser, err := github.UserFromContext(ctx)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedUser, githubUser)
+		fmt.Fprintf(w, "success handler called")
+	}
+	failure := testutils.AssertFailureNotCalled(t)
+
+	// GithubHandler assert that:
+	// - Token is read from the ctx and passed to the Github API
+	// - github User is obtained from the Github API
+	// - success handler is called
+	// - github User is added to the ctx of the success handler
+	githubHandler := githubHandler(config, ctxh.ContextHandlerFunc(success), failure)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		githubHandler.ServeHTTP(ctx, w, r)
+	})
+	m := mux.NewRouter()
+	m = LoginRoute(m, handler, nil, config)
+	c, _, s := MockServer(m)
+	defer s.Close()
+	resp, err := c.Get(s.URL + "/github/login")
+	assert.Nil(t, err)
+	bs, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(t, "success handler called", string(bs))
+}
 func githubHandler(config *oauth2.Config, success, failure ctxh.ContextHandler) ctxh.ContextHandler {
 	if failure == nil {
 		failure = gologin.DefaultFailureHandler
@@ -86,6 +110,7 @@ func githubHandler(config *oauth2.Config, success, failure ctxh.ContextHandler) 
 	fn := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 		token, err := oauth2Login.TokenFromContext(ctx)
 		if err != nil {
+			log.Println("Err", err)
 			ctx = gologin.WithError(ctx, err)
 			failure.ServeHTTP(ctx, w, req)
 			return

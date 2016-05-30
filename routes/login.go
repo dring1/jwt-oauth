@@ -46,7 +46,6 @@ func init() {
 
 func LoginRoute(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
 	log.Println("LOGIN ROUTE")
-
 	if oauth2Config == nil {
 		log.Println("LOGIN config")
 		oauth2Config = &oauth2.Config{
@@ -57,7 +56,7 @@ func LoginRoute(r *mux.Router, loginHandler http.Handler, callbackHandler http.H
 		}
 	}
 	stateConfig := gologin.DebugOnlyCookieConfig
-	log.Println(loginHandler, callbackHandler)
+	// log.Println(loginHandler, callbackHandler)
 	// state param cookies require HTTPS by default; disable for localhost development
 	if loginHandler == nil {
 		loginHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(oauth2Config, nil)))
