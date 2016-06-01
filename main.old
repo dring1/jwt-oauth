@@ -11,7 +11,7 @@ import (
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/github"
 	"github.com/dghubble/sessions"
-	"github.com/dring1/orm/reddit"
+	"github.com/dring1/jwt-oauth/reddit"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

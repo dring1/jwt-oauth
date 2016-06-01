@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/dring1/orm/middlewares"
-	"github.com/dring1/orm/models"
-	"github.com/dring1/orm/routes"
-	"github.com/dring1/orm/services"
+	"github.com/dring1/jwt-oauth/middlewares"
+	"github.com/dring1/jwt-oauth/models"
+	"github.com/dring1/jwt-oauth/routes"
+	"github.com/dring1/jwt-oauth/services"
 	"github.com/justinas/alice"
 )
 

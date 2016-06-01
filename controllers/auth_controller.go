@@ -10,14 +10,15 @@ import (
 
 	"github.com/dghubble/ctxh"
 	"github.com/dghubble/gologin/github"
-	"github.com/dring1/orm/lib/errors"
-	"github.com/dring1/orm/models"
-	"github.com/dring1/orm/services"
+	"github.com/dring1/jwt-oauth/lib/errors"
+	"github.com/dring1/jwt-oauth/models"
+	"github.com/dring1/jwt-oauth/services"
 )
 
-func Login() ctxh.ContextHandler {
+func Login(callback func(*models.User)) ctxh.ContextHandler {
 	fn := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		githubUser, err := github.UserFromContext(ctx)
+		log.Println("Github user", *githubUser)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -57,15 +58,12 @@ func Login() ctxh.ContextHandler {
 		for _, u := range users {
 			log.Println(u)
 		}
-		// log.Println("Val", val)
-		// if val {
-		// }
 		// insert token into redis
 		services.Cache().Set(u.Email, token, 5*time.Minute)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(token)
-
+		callback(u)
 	}
 	return ctxh.ContextHandlerFunc(fn)
 }

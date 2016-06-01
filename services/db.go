@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/dring1/orm/models"
+	"github.com/dring1/jwt-oauth/models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )

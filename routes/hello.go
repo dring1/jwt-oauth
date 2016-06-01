@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"github.com/dring1/orm/controllers"
+	"github.com/dring1/jwt-oauth/controllers"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )

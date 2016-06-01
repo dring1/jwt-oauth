@@ -11,7 +11,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/dring1/orm/config"
+	"github.com/dring1/jwt-oauth/config"
 )
 
 type JWTAuthenticationBackend struct {

@@ -9,7 +9,8 @@ import (
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/github"
 	"github.com/dghubble/sessions"
-	"github.com/dring1/orm/controllers"
+	"github.com/dring1/jwt-oauth/controllers"
+	"github.com/dring1/jwt-oauth/models"
 	"github.com/gorilla/mux"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -62,7 +63,7 @@ func LoginRoute(r *mux.Router, loginHandler http.Handler, callbackHandler http.H
 		loginHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(oauth2Config, nil)))
 	}
 	if callbackHandler == nil {
-		callbackHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(oauth2Config, controllers.Login(), nil)))
+		callbackHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(oauth2Config, controllers.Login(func(u *models.User) {}), nil)))
 	}
 	r.Handle("/github/login", loginHandler)
 	r.Handle("/github/callback", callbackHandler)

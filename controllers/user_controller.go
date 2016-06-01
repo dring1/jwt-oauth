@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/dring1/orm/models"
-	"github.com/dring1/orm/services"
+	"github.com/dring1/jwt-oauth/models"
+	"github.com/dring1/jwt-oauth/services"
 )
 
 func FindUser(email string) (*models.User, error) {

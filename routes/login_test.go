@@ -14,6 +14,8 @@ import (
 	"github.com/dghubble/gologin/github"
 	oauth2Login "github.com/dghubble/gologin/oauth2"
 	"github.com/dghubble/gologin/testutils"
+	"github.com/dring1/jwt-oauth/controllers"
+	"github.com/dring1/jwt-oauth/models"
 	gh "github.com/google/go-github/github"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -103,6 +105,47 @@ func TestSuccessfulLogin(t *testing.T) {
 	bs, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(t, "success handler called", string(bs))
 }
+
+func TestSuccessfulLoginWithJWT(t *testing.T) {
+	config := &oauth2.Config{}
+	jsonData := `{"id": 917408, "name": "Alyssa Hacker", "email": "user.haxor@yahoo.com"}`
+	expectedUser := &gh.User{ID: gh.Int(917408), Name: gh.String("Alyssa Hacker"), Email: gh.String("uber.haxor@yahoo.com")}
+	proxyClient, server := newGithubTestServer(jsonData)
+	defer server.Close()
+	// oauth2 Client will use the proxy client's base Transport
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, proxyClient)
+	anyToken := &oauth2.Token{AccessToken: "any-token"}
+	ctx = oauth2Login.WithToken(ctx, anyToken)
+	// success := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
+	// 	githubUser, err := github.UserFromContext(ctx)
+	// 	assert.Nil(t, err)
+	// 	assert.Equal(t, expectedUser, githubUser)
+	// 	fmt.Fprintf(w, "success handler called")
+	// }
+	success := controllers.Login(func(githubUser *models.User) {
+		assert.Equal(t, expectedUser, githubUser)
+	})
+	failure := testutils.AssertFailureNotCalled(t)
+
+	// GithubHandler assert that:
+	// - Token is read from the ctx and passed to the Github API
+	// - github User is obtained from the Github API
+	// - success handler is called
+	// - github User is added to the ctx of the success handler
+	githubHandler := githubHandler(config, success, failure)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		githubHandler.ServeHTTP(ctx, w, r)
+	})
+	m := mux.NewRouter()
+	m = LoginRoute(m, handler, nil, config)
+	c, _, s := MockServer(m)
+	defer s.Close()
+	resp, err := c.Get(s.URL + "/github/login")
+	assert.Nil(t, err)
+	bs, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(t, "success handler called", string(bs))
+}
+
 func githubHandler(config *oauth2.Config, success, failure ctxh.ContextHandler) ctxh.ContextHandler {
 	if failure == nil {
 		failure = gologin.DefaultFailureHandler
