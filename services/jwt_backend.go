@@ -1,12 +1,10 @@
 package services
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -15,8 +13,7 @@ import (
 )
 
 type JWTAuthenticationBackend struct {
-	privateKey *rsa.PrivateKey
-	PublicKey  *rsa.PublicKey
+	privateKey, PublicKey []byte
 }
 
 const (
@@ -29,16 +26,8 @@ var (
 	jwtBackendInstance *JWTAuthenticationBackend
 )
 
-// func init() {
-// 	abi, err := newjwtbackend()
-// 	if err != nil {
-// 		log.fatal(err)
-// 	}
-// 	JWTBackendInstance = abi
-// }
-
 func JWTBackend() *JWTAuthenticationBackend {
-	once.Do(func() {
+	jwtOnce.Do(func() {
 
 		abi, err := NewJWTBackend()
 		if err != nil {
@@ -51,19 +40,18 @@ func JWTBackend() *JWTAuthenticationBackend {
 }
 
 func NewJWTBackend() (*JWTAuthenticationBackend, error) {
-	rawPrivData, err := ioutil.ReadFile(config.Cfg.PrivateKeyPath)
-	if err != nil {
-		return nil, err
-	}
-	log.Println("Here")
+	rawPrivData := []byte(os.Getenv("PRIVATE_KEY")) // ioutil.ReadFile(config.Cfg.PrivateKeyPath)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	privateKey, err := getPrivateKey(rawPrivData)
 	if err != nil {
 		return nil, err
 	}
-	rawPubData, err := ioutil.ReadFile(config.Cfg.PublicKeyPath)
-	if err != nil {
-		return nil, err
-	}
+	rawPubData := []byte(os.Getenv("PUBLIC_KEY")) //ioutil.ReadFile(config.Cfg.PublicKeyPath)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	publicKey, err := getPublicKey(rawPubData)
 	if err != nil {
@@ -76,14 +64,28 @@ func NewJWTBackend() (*JWTAuthenticationBackend, error) {
 	return ab, nil
 }
 
+type CustomClaims struct {
+	Email string `json:"email"`
+	jwt.StandardClaims
+}
+
 func (backend *JWTAuthenticationBackend) GenerateToken(userID string) (string, error) {
-	token := jwt.New(jwt.SigningMethodRS512)
-	token.Claims["exp"] = time.Now().Add(time.Hour * time.Duration(config.Cfg.JWTExpirationDelta)).Unix()
-	token.Claims["iat"] = time.Now().Unix()
-	token.Claims["sub"] = userID
+	exp := time.Now().Add(time.Hour * time.Duration(config.Cfg.JWTExpirationDelta)).Unix()
+	iss := "jwt-oauth.com"
+	sub := "jwt-oauth"
+	claims := CustomClaims{
+		userID,
+		jwt.StandardClaims{
+			ExpiresAt: exp,
+			Issuer:    iss,
+			Subject:   sub,
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(backend.privateKey)
+	fmt.Println(userID, err)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return tokenString, nil
 }
@@ -108,28 +110,26 @@ func (backend *JWTAuthenticationBackend) TimeToExpire(timestamp interface{}) int
 	return ExpireOffset
 }
 
-func getPrivateKey(rawPemData []byte) (*rsa.PrivateKey, error) {
+func getPrivateKey(rawPemData []byte) ([]byte, error) {
 	data, _ := pem.Decode([]byte(rawPemData))
-	privateKeyImported, err := x509.ParsePKCS1PrivateKey(data.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return privateKeyImported, nil
+	return data.Bytes, nil
+	// privateKeyImported, err := x509.ParsePKCS1PrivateKey(data.Bytes)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// return privateKeyImported, nil
 }
 
-func getPublicKey(rawPemData []byte) (*rsa.PublicKey, error) {
+func getPublicKey(rawPemData []byte) ([]byte, error) {
 	data, _ := pem.Decode([]byte(rawPemData))
-	publicKeyImported, err := x509.ParsePKIXPublicKey(data.Bytes)
-	if err != nil {
-		panic(err)
-	}
+	return data.Bytes, nil
 
-	rsaPub, ok := publicKeyImported.(*rsa.PublicKey)
-
-	if !ok {
-		return nil, fmt.Errorf("Not a valid RSA public key")
-	}
-
-	return rsaPub, nil
+	// rsaPub, ok := publicKeyImported.(*rsa.PublicKey)
+	//
+	// if !ok {
+	// 	return nil, fmt.Errorf("Not a valid RSA public key")
+	// }
+	//
+	// return rsaPub, nil
 }

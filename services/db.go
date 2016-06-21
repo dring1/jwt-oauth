@@ -26,6 +26,7 @@ func Database() *database {
 		}
 		d = &database{db}
 		d.AutoMigrate(&models.User{})
+		return
 	})
 	return d
 }

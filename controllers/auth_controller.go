@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -25,41 +26,42 @@ func Login(callback func(*models.User)) ctxh.ContextHandler {
 		}
 		u, err := FindUser(*githubUser.Email)
 		if err != nil {
-
 			if err.Error() == errors.RecordNotFound {
 				log.Println("User does not exists", err)
 				log.Printf("Creating new user... %s", *githubUser.Email)
-				w.WriteHeader(500)
-				w.Write([]byte("could not find user!"))
-				return
+
+				if err := CreateUser(*githubUser.Email); err != nil {
+					w.WriteHeader(500)
+					w.Write([]byte("shit!"))
+					return
+				}
+				w.WriteHeader(201)
 			}
 		}
-		if u == nil {
-			log.Println("User does not exists")
-			w.WriteHeader(500)
-			w.Write([]byte("shit!"))
-			return
-		}
-
-		// requestUser := new(models.User)
-		token, err := services.Login(u.Email)
+		token, err := services.Login(*githubUser.Email)
 		// If user already exists - update last logged in
 		// If User does not exist, create it
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error occurred during login"))
+			return
 		}
 		// val := services.Database().NewRecord(&models.User{ID: uuid.NewV4(), Email: *githubUser.Email})
 		// u := &models.User{Email: *githubUser.Email}
-		if inserted := services.Database().Create(u).Error; inserted != nil {
-
-		}
-		users := []models.User{}
-		services.Database().Find(&users)
-		for _, u := range users {
-			log.Println(u)
-		}
+		// if inserted := services.Database().Create(u).Error; inserted != nil {
+		//
+		// }
+		// users := []models.User{}
+		// services.Database().Find(&users)
+		// for _, u := range users {
+		// 	log.Println(u)
+		// }
 		// insert token into redis
-		services.Cache().Set(u.Email, token, 5*time.Minute)
+		fmt.Println(u.Email, token)
+		err = services.Cache().Set(u.Email, token, 5*time.Minute).Err()
+		if err != nil {
+			log.Fatal(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(token)

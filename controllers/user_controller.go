@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"time"
+
 	"github.com/dring1/jwt-oauth/models"
 	"github.com/dring1/jwt-oauth/services"
 )
@@ -12,4 +14,13 @@ func FindUser(email string) (*models.User, error) {
 		return nil, err
 	}
 	return u, nil
+}
+
+func CreateUser(email string) error {
+	var user = &models.User{
+		Email:        email,
+		LastLoggedIn: time.Now(),
+	}
+
+	return services.Database().Create(user).Error
 }

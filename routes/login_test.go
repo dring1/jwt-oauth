@@ -109,7 +109,7 @@ func TestSuccessfulLogin(t *testing.T) {
 func TestSuccessfulLoginWithJWT(t *testing.T) {
 	config := &oauth2.Config{}
 	jsonData := `{"id": 917408, "name": "Alyssa Hacker", "email": "user.haxor@yahoo.com"}`
-	expectedUser := &gh.User{ID: gh.Int(917408), Name: gh.String("Alyssa Hacker"), Email: gh.String("uber.haxor@yahoo.com")}
+	expectedUser := &gh.User{ID: gh.Int(917408), Name: gh.String("Alyssa Hacker"), Email: gh.String("user.haxor@yahoo.com")}
 	proxyClient, server := newGithubTestServer(jsonData)
 	defer server.Close()
 	// oauth2 Client will use the proxy client's base Transport
@@ -123,7 +123,7 @@ func TestSuccessfulLoginWithJWT(t *testing.T) {
 	// 	fmt.Fprintf(w, "success handler called")
 	// }
 	success := controllers.Login(func(githubUser *models.User) {
-		assert.Equal(t, expectedUser, githubUser)
+		assert.Equal(t, *expectedUser.Email, githubUser.Email)
 	})
 	failure := testutils.AssertFailureNotCalled(t)
 
@@ -143,6 +143,8 @@ func TestSuccessfulLoginWithJWT(t *testing.T) {
 	resp, err := c.Get(s.URL + "/github/login")
 	assert.Nil(t, err)
 	bs, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(t, resp.StatusCode, 200)
+	// unmarshal response into struct
 	assert.Equal(t, "success handler called", string(bs))
 }
 

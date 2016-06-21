@@ -3,8 +3,6 @@ package services
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 func Login(key string) ([]byte, error) {
@@ -35,13 +33,14 @@ func RefreshToken(key string) ([]byte, error) {
 }
 
 func Logout(req *http.Request) error {
-	authBackend := JWTBackend()
-	tokenRequest, err := jwt.ParseFromRequest(req, func(token *jwt.Token) (interface{}, error) {
-		return authBackend.PublicKey, nil
-	})
-	if err != nil {
-		return err
-	}
-	tokenString := req.Header.Get("Authorization")
-	return authBackend.Logout(tokenString, tokenRequest)
+	// authBackend := JWTBackend()
+	// tokenRequest, err := jwt.ParseFromRequest(req, func(token *jwt.Token) (interface{}, error) {
+	// 	return authBackend.PublicKey, nil
+	// })
+	// if err != nil {
+	// 	return err
+	// }
+	// tokenString := req.Header.Get("Authorization")
+	// return authBackend.Logout(tokenString, tokenRequest)
+	return nil
 }

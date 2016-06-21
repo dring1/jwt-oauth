@@ -48,6 +48,7 @@ func NewConfig(env string) (*Config, error) {
 	}
 	c := Config{}
 	err = json.Unmarshal(data, &c)
+	fmt.Println(c)
 	if err != nil {
 		return nil, err
 	}

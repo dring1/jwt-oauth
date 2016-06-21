@@ -12,14 +12,18 @@ type cache struct {
 }
 
 var (
-	once   sync.Once
-	client *cache
+	onceCache sync.Once
+	client    cache
 )
 
 func Cache() *cache {
-	once.Do(func() {
+	onceCache.Do(func() {
 		log.Println("Creating Cache Client...")
-		client = &cache{redis.NewClient(&redis.Options{})}
+		client = cache{redis.NewClient(&redis.Options{
+			Addr:     "localhost:6379",
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		})}
 	})
-	return client
+	return &client
 }
