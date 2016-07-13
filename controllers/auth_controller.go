@@ -30,15 +30,18 @@ func Login(callback func(*models.User)) ctxh.ContextHandler {
 				log.Println("User does not exists", err)
 				log.Printf("Creating new user... %s", *githubUser.Email)
 
-				if err := CreateUser(*githubUser.Email); err != nil {
+				user, err := CreateUser(*githubUser.Email)
+				if err != nil {
 					w.WriteHeader(500)
 					w.Write([]byte("shit!"))
 					return
 				}
+				u = user
 				w.WriteHeader(201)
 			}
 		}
 		token, err := services.Login(*githubUser.Email)
+		log.Println("I AM HERE")
 		// If user already exists - update last logged in
 		// If User does not exist, create it
 		if err != nil {
@@ -46,17 +49,8 @@ func Login(callback func(*models.User)) ctxh.ContextHandler {
 			w.Write([]byte("Error occurred during login"))
 			return
 		}
-		// val := services.Database().NewRecord(&models.User{ID: uuid.NewV4(), Email: *githubUser.Email})
-		// u := &models.User{Email: *githubUser.Email}
-		// if inserted := services.Database().Create(u).Error; inserted != nil {
-		//
-		// }
-		// users := []models.User{}
-		// services.Database().Find(&users)
-		// for _, u := range users {
-		// 	log.Println(u)
-		// }
 		// insert token into redis
+		// TODO: `u`
 		fmt.Println(u.Email, token)
 		err = services.Cache().Set(u.Email, token, 5*time.Minute).Err()
 		if err != nil {

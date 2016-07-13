@@ -16,11 +16,11 @@ func FindUser(email string) (*models.User, error) {
 	return u, nil
 }
 
-func CreateUser(email string) error {
+func CreateUser(email string) (*models.User, error) {
 	var user = &models.User{
 		Email:        email,
 		LastLoggedIn: time.Now(),
 	}
 
-	return services.Database().Create(user).Error
+	return user, services.Database().Create(user).Error
 }

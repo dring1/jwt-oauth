@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/pem"
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -83,7 +82,6 @@ func (backend *JWTAuthenticationBackend) GenerateToken(userID string) (string, e
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(backend.privateKey)
-	fmt.Println(userID, err)
 	if err != nil {
 		return "", err
 	}
@@ -113,23 +111,9 @@ func (backend *JWTAuthenticationBackend) TimeToExpire(timestamp interface{}) int
 func getPrivateKey(rawPemData []byte) ([]byte, error) {
 	data, _ := pem.Decode([]byte(rawPemData))
 	return data.Bytes, nil
-	// privateKeyImported, err := x509.ParsePKCS1PrivateKey(data.Bytes)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// return privateKeyImported, nil
 }
 
 func getPublicKey(rawPemData []byte) ([]byte, error) {
 	data, _ := pem.Decode([]byte(rawPemData))
 	return data.Bytes, nil
-
-	// rsaPub, ok := publicKeyImported.(*rsa.PublicKey)
-	//
-	// if !ok {
-	// 	return nil, fmt.Errorf("Not a valid RSA public key")
-	// }
-	//
-	// return rsaPub, nil
 }
