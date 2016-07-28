@@ -27,3 +27,4 @@ _scriptpack_staging/
 /.ottoid
 otto-data/
 test-output
+jwt-oauth

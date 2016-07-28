@@ -8,7 +8,6 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/dring1/jwt-oauth/config"
 )
 
 type JWTAuthenticationBackend struct {
@@ -69,7 +68,7 @@ type CustomClaims struct {
 }
 
 func (backend *JWTAuthenticationBackend) GenerateToken(userID string) (string, error) {
-	exp := time.Now().Add(time.Hour * time.Duration(config.Cfg.JWTExpirationDelta)).Unix()
+	exp := time.Now().Add(time.Hour * 1).Unix()
 	iss := "jwt-oauth.com"
 	sub := "jwt-oauth"
 	claims := CustomClaims{

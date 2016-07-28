@@ -1,56 +1,31 @@
 package config
 
-import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"runtime"
-
-	log "github.com/Sirupsen/logrus"
-)
-
 var environments = map[string]string{
 	"production": "production.json",
 	"staging":    "staging.json",
 	"test":       "test.json",
 }
 
-type Config struct {
-	PrivateKeyPath     string
-	PublicKeyPath      string
+type Cfg struct {
 	JWTExpirationDelta int
+	PrivateKey         []byte
+	PublicKey          []byte
+	Port               int
+	GitHubClientID     string
+	GitHubClientSecret string
 }
 
-var Cfg *Config
-
-func init() {
-	env := os.Getenv("GO_ENV")
-	if env == "" {
-		log.WithField("env", env).Warn("Missing GO_ENV env var defaulting to test environment")
-		env = "test"
+func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {
+	c := &Cfg{
+		JWTExpirationDelta: 60,
+		PrivateKey:         make([]byte, 10),
+		PublicKey:          make([]byte, 10),
+		Port:               8080,
 	}
-	var err error
-	Cfg, err = NewConfig(env)
-	if err != nil {
-		log.Fatalf("Error loading config %+v", err.Error())
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			return nil, err
+		}
 	}
-}
-
-func NewConfig(env string) (*Config, error) {
-	_, fileName, _, _ := runtime.Caller(1)
-	f := path.Join(path.Dir(fileName), environments[env])
-	fmt.Println(f)
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		return nil, err
-	}
-	c := Config{}
-	err = json.Unmarshal(data, &c)
-	fmt.Println(c)
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return c, nil
 }
