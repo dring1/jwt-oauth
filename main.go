@@ -16,6 +16,7 @@ import (
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/dring1/jwt-oauth/services"
 	"github.com/justinas/alice"
+	"github.com/pkg/errors"
 )
 
 var c *config.Cfg
@@ -27,7 +28,7 @@ func init() {
 	services.Database().HasTable(&models.User{})
 	var PrivateKey *pem.Block
 	privateKey := func(c *config.Cfg) error {
-		privateKeyPemBlock, error := getEnvVal("PRIVATE_KEY", func() (interface{}, error) {
+		privateKeyPemBlock, err := getEnvVal("PRIVATE_KEY", func() (interface{}, error) {
 			pk, _ := rsa.GenerateKey(rand.Reader, 1024)
 			bits := x509.MarshalPKCS1PrivateKey(pk)
 			pemBlock := pem.Block{
@@ -38,6 +39,9 @@ func init() {
 			pem.Encode(os.Stdout, &pemBlock)
 			return &pemBlock, nil
 		})
+		if err != nil {
+			return err
+		}
 		c.PrivateKey = privateKeyPemBlock.(pem.Block).Bytes
 		return nil
 	}
@@ -64,10 +68,13 @@ func init() {
 	}
 
 	port := func(c *config.Cfg) error {
-		p, _ = getEnvVal("PORT", func() interface{} {
-			return 8080
+		p, err := getEnvVal("PORT", func() (interface{}, error) {
+			return 8080, nil
 		})
-		c.Port
+		if err != nil {
+			return err
+		}
+		c.Port = p.(int)
 		return nil
 	}
 
@@ -75,23 +82,23 @@ func init() {
 		ghCID, err := getEnvVal("GITHUB_CLIENT_ID", func() (interface{}, error) {
 			return nil, fmt.Errorf("Did not provide GITHUB_CLIENT_ID")
 		})
-
 		if err != nil {
 			return err
 		}
+		c.GitHubClientID = ghCID.(string)
 		return nil
 	}
 	var err error
-	c, err = config.NewConfig(privateKey, publicKey, port)
+	c, err = config.NewConfig(privateKey, publicKey, port, gitHubClientId)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(errors.Wrap(err, "Unable to create config"))
 	}
 }
 
 func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 	var value interface{}
 	var err error
-	value = os.Getenv(key).(interface{})
+	value = os.Getenv(key)
 	if value.(string) == "" {
 		value, err = defaultValue()
 	}
