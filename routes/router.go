@@ -2,7 +2,11 @@ package routes
 
 import "github.com/gorilla/mux"
 
-func NewRouter() *mux.Router {
+type RouterConfig struct {
+	GitHubID string
+}
+
+func NewRouter(c *RouterConfig) *mux.Router {
 	r := mux.NewRouter()
 	r = AddHelloRoutes(r)
 	r = LoginRoute(r, nil, nil, nil)

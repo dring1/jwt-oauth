@@ -32,12 +32,12 @@ var c *Config
 var sessionStore = sessions.NewCookieStore([]byte(sessionSecret), nil)
 
 func init() {
-	if val := os.Getenv("GITHUB_CLIENT_ID"); val == "" {
-		log.Fatal("GITHUB_CLIENT_ID NOT SET")
-	}
-	if val := os.Getenv("GITHUB_CLIENT_SECRET"); val == "" {
-		log.Fatal("GITHUB_CLIENT_SECRET NOT SET")
-	}
+	// if val := os.Getenv("GITHUB_CLIENT_ID"); val == "" {
+	// 	log.Fatal("GITHUB_CLIENT_ID NOT SET")
+	// }
+	// if val := os.Getenv("GITHUB_CLIENT_SECRET"); val == "" {
+	// 	log.Fatal("GITHUB_CLIENT_SECRET NOT SET")
+	// }
 
 	c = &Config{
 		GithubClientID:     os.Getenv("GITHUB_CLIENT_ID"),

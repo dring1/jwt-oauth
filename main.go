@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -42,7 +41,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-		c.PrivateKey = privateKeyPemBlock.(pem.Block).Bytes
+		c.PrivateKey = privateKeyPemBlock.(*pem.Block).Bytes
 		return nil
 	}
 	publicKey := func(c *config.Cfg) error {
@@ -80,7 +79,7 @@ func init() {
 
 	gitHubClientId := func(c *config.Cfg) error {
 		ghCID, err := getEnvVal("GITHUB_CLIENT_ID", func() (interface{}, error) {
-			return nil, fmt.Errorf("Did not provide GITHUB_CLIENT_ID")
+			return nil, errors.Errorf("Did not provide GITHUB_CLIENT_ID")
 		})
 		if err != nil {
 			return err
@@ -91,7 +90,7 @@ func init() {
 	var err error
 	c, err = config.NewConfig(privateKey, publicKey, port, gitHubClientId)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "Unable to create config"))
+		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
 }
 
@@ -106,6 +105,12 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 }
 
 func main() {
+	routerC := struct {
+		GitHubID string
+	}{
+		c.GitHubClientID,
+	}
+	err := tmpl.Execute(w, routerC)
 	router := routes.NewRouter()
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), chain)
