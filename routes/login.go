@@ -45,7 +45,12 @@ func init() {
 	}
 }
 
-func LoginRoute(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
+type LoginRoute struct {
+	GithubClientID     string
+	GithubClientSecret string
+}
+
+func HttpHandler(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
 	log.Println("LOGIN ROUTE")
 	if oauth2Config == nil {
 		log.Println("LOGIN config")

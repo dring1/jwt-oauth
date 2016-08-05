@@ -105,13 +105,7 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 }
 
 func main() {
-	routerC := struct {
-		GitHubID string
-	}{
-		c.GitHubClientID,
-	}
-	err := tmpl.Execute(w, routerC)
-	router := routes.NewRouter()
+	router := routes.NewRouter(c.GitHubClientID, c.GitHubClientSecret)
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), chain)
 	log.Fatal(err)
