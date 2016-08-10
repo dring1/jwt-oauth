@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -35,7 +36,6 @@ func init() {
 				Bytes: bits,
 			}
 			PrivateKey = &pemBlock
-			pem.Encode(os.Stdout, &pemBlock)
 			return &pemBlock, nil
 		})
 		if err != nil {
@@ -60,7 +60,6 @@ func init() {
 				Type:  "PUBLIC KEY",
 				Bytes: pub,
 			}
-			pem.Encode(os.Stdout, &pemBlock)
 			return &pemBlock, nil
 		})
 		return nil
@@ -87,11 +86,24 @@ func init() {
 		c.GitHubClientID = ghCID.(string)
 		return nil
 	}
+
+	oauthRedirectURL := func(c *config.Cfg) error {
+		rdURL, err := getEnvVal("OAUTH_REDIRECT_URL", func() (interface{}, error) {
+			return fmt.Sprintf("http://localhost:%d/github/callback", c.Port), nil
+		})
+		if err != nil {
+			return err
+		}
+		c.OauthRedirectURL = rdURL.(string)
+		return nil
+	}
 	var err error
-	c, err = config.NewConfig(privateKey, publicKey, port, gitHubClientId)
+	c, err = config.NewConfig(privateKey, publicKey, port,
+		gitHubClientId, oauthRedirectURL)
 	if err != nil {
 		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
+	log.Println("Done initializing config")
 }
 
 func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
@@ -99,14 +111,16 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 	var err error
 	value = os.Getenv(key)
 	if value.(string) == "" {
+		log.Printf("Did not set %s therefore using default", key)
 		value, err = defaultValue()
 	}
 	return value, err
 }
 
 func main() {
-	router := routes.NewRouter(c.GitHubClientID, c.GitHubClientSecret)
+	router := routes.New(c.GitHubClientID, c.GitHubClientSecret)
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), chain)
+	log.Printf("Serving on port :%d", c.Port)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), chain)
 	log.Fatal(err)
 }

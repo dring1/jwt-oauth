@@ -1,19 +1,24 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"path/filepath"
-
-	"github.com/gorilla/mux"
 )
 
-func HomeRoute(r *mux.Router) *mux.Router {
-	fp := "static"
-	_, err := filepath.Abs(fp)
+type HomeRoute struct {
+	StaticFilePath string
+}
+
+func (r *HomeRoute) GenHttpHandlers() ([]*R, error) {
+	_, err := filepath.Abs(r.StaticFilePath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	r.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(fp))))
-	return r
+	return []*R{
+		&R{
+			Path:    "/",
+			Methods: []string{"GET"},
+			Handler: http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath))),
+		},
+	}, nil
 }

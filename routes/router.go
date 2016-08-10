@@ -1,33 +1,47 @@
 package routes
 
 import (
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
 
-type RouterConfig struct {
-	GitHubID string
+type Route interface {
+	GenHttpHandlers() ([]*R, error)
+}
+type R struct {
+	Path    string
+	Handler http.Handler
+	Methods []string
 }
 
-func NewRouter(gitHubClientID, githubClientSecret string) *mux.Router {
-	r := mux.NewRouter()
-	r = AddHelloRoutes(r)
-	r = LoginRoute(r, nil, nil, nil)
-	r = HomeRoute(r)
-	return r
-}
-
-func New() *mux.Router {
+func New(gitHubClientID, gitHubClientSecret string) *mux.Router {
+	router := mux.NewRouter()
 	routes := []Route{
-		LoginRoute{
+		&LoginRoute{
 			GitHubClientID:     gitHubClientID,
 			GitHubClientSecret: gitHubClientSecret,
 		},
+		&HelloRoute{},
+		&HomeRoute{StaticFilePath: "static"},
 	}
-	return nil
+	register(router, routes)
+	return router
 }
 
-type Route interface {
-	HttpHandler() map[string]http.HandlerFunc
+func register(router *mux.Router, routes []Route) error {
+
+	for _, route := range routes {
+		rs, err := route.GenHttpHandlers()
+		if err != nil {
+			return err
+		}
+		for _, r := range rs {
+			log.Printf("Registering %s with handlers for HTTP methods: %s", r.Path, strings.Join(r.Methods, ","))
+			router.Handle(r.Path, r.Handler).Methods(r.Methods...)
+		}
+	}
+	return nil
 }

@@ -13,6 +13,7 @@ type Cfg struct {
 	Port               int
 	GitHubClientID     string
 	GitHubClientSecret string
+	OauthRedirectURL   string
 }
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {

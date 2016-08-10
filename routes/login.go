@@ -3,7 +3,6 @@ package routes
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/dghubble/ctxh"
 	"github.com/dghubble/gologin"
@@ -31,26 +30,49 @@ var c *Config
 
 var sessionStore = sessions.NewCookieStore([]byte(sessionSecret), nil)
 
-func init() {
-	// if val := os.Getenv("GITHUB_CLIENT_ID"); val == "" {
-	// 	log.Fatal("GITHUB_CLIENT_ID NOT SET")
-	// }
-	// if val := os.Getenv("GITHUB_CLIENT_SECRET"); val == "" {
-	// 	log.Fatal("GITHUB_CLIENT_SECRET NOT SET")
-	// }
-
-	c = &Config{
-		GithubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-		GithubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-	}
-}
-
 type LoginRoute struct {
-	GithubClientID     string
-	GithubClientSecret string
+	GitHubClientID     string
+	GitHubClientSecret string
+	Oauth2Config       *oauth2.Config
+	RedirectURL        string
+	LoginHandler       http.Handler
+	CallbackHandler    http.Handler
 }
 
-func HttpHandler(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
+func (r *LoginRoute) GenHttpHandlers() ([]*R, error) {
+	if r.Oauth2Config == nil {
+		r.Oauth2Config = &oauth2.Config{
+			ClientID:     r.GitHubClientID,
+			ClientSecret: r.GitHubClientSecret,
+			RedirectURL:  r.RedirectURL,
+			Endpoint:     githubOAuth2.Endpoint,
+		}
+	}
+	stateConfig := gologin.DebugOnlyCookieConfig
+
+	if r.LoginHandler == nil {
+		r.LoginHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(r.Oauth2Config, nil)))
+	}
+	if r.CallbackHandler == nil {
+		r.CallbackHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(r.Oauth2Config, controllers.Login(func(u *models.User) {}), nil)))
+	}
+
+	routes := []*R{
+		&R{
+			Path:    "/github/login",
+			Methods: []string{"GET", "POST"},
+			Handler: r.LoginHandler,
+		},
+		&R{
+			Path:    "/github/callback",
+			Methods: []string{"GET", "POST"},
+			Handler: r.CallbackHandler,
+		},
+	}
+	return routes, nil
+}
+
+func OldHttpHandler(r *mux.Router, loginHandler http.Handler, callbackHandler http.Handler, oauth2Config *oauth2.Config) *mux.Router {
 	log.Println("LOGIN ROUTE")
 	if oauth2Config == nil {
 		log.Println("LOGIN config")
