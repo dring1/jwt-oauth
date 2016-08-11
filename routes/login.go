@@ -11,6 +11,7 @@ import (
 	"github.com/dring1/jwt-oauth/controllers"
 	"github.com/dring1/jwt-oauth/models"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
 )
@@ -65,7 +66,7 @@ func (r *LoginRoute) GenHttpHandlers() ([]*R, error) {
 		},
 		&R{
 			Path:    "/github/callback",
-			Methods: []string{"GET", "POST"},
+			Methods: []string{"GET", "POST", "HEAD", "OPTIONS"},
 			Handler: r.CallbackHandler,
 		},
 	}
@@ -95,4 +96,20 @@ func OldHttpHandler(r *mux.Router, loginHandler http.Handler, callbackHandler ht
 	r.Handle("/github/login", loginHandler)
 	r.Handle("/github/callback", callbackHandler)
 	return r
+}
+
+func issueSession() ctxh.ContextHandler {
+	fn := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
+		githubUser, err := github.UserFromContext(ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// 2. Implement a success handler to issue some form of session
+		session := sessionStore.New(sessionName)
+		session.Values[sessionUserKey] = *githubUser.ID
+		session.Save(w)
+		http.Redirect(w, req, "/profile", http.StatusFound)
+	}
+	return ctxh.ContextHandlerFunc(fn)
 }

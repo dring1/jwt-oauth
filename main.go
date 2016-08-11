@@ -76,7 +76,7 @@ func init() {
 		return nil
 	}
 
-	gitHubClientId := func(c *config.Cfg) error {
+	gitHubClientID := func(c *config.Cfg) error {
 		ghCID, err := getEnvVal("GITHUB_CLIENT_ID", func() (interface{}, error) {
 			return nil, errors.Errorf("Did not provide GITHUB_CLIENT_ID")
 		})
@@ -84,6 +84,17 @@ func init() {
 			return err
 		}
 		c.GitHubClientID = ghCID.(string)
+		return nil
+	}
+
+	gitHubClientSecret := func(c *config.Cfg) error {
+		ghCS, err := getEnvVal("GITHUB_CLIENT_SECRET", func() (interface{}, error) {
+			return nil, errors.Errorf("Did not provide GITHUB_CLIENT_SECRET")
+		})
+		if err != nil {
+			return err
+		}
+		c.GitHubClientSecret = ghCS.(string)
 		return nil
 	}
 
@@ -99,7 +110,7 @@ func init() {
 	}
 	var err error
 	c, err = config.NewConfig(privateKey, publicKey, port,
-		gitHubClientId, oauthRedirectURL)
+		gitHubClientID, gitHubClientSecret, oauthRedirectURL)
 	if err != nil {
 		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
