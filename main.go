@@ -131,6 +131,9 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 func main() {
 	router := routes.New(c.GitHubClientID, c.GitHubClientSecret)
 	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
+	fn := func(w http.ResponseWriter, r *http.Request) {
+
+	}
 	log.Printf("Serving on port :%d", c.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), chain)
 	log.Fatal(err)
