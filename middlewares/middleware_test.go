@@ -26,14 +26,24 @@ func mockMiddleWare() []http.HandlerFunc {
 }
 func TestApplyManyMiddleWares(t *testing.T) {
 	middlewareSlice := mockMiddleWare()
-	assert.Equal(t, len(middlewareSlice), 10)
-
 	handler := middleware.HandlerFuncs(middlewareSlice...)
-
 	req, err := http.NewRequest("GET", "localhost:8080", nil)
 	assert.Nil(t, err)
 	w := httptest.NewRecorder()
 	handler(w, req)
-	x := w.Header().Get("MIDDLEWARE-5")
-	assert.Equal(t, "5", x)
+	assert.Equal(t, "5", w.Header().Get("MIDDLEWARE-5"))
+}
+
+func TestApplyHandlersWithResponse(t *testing.T) {
+	middlewareSlice := mockMiddleWare()
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello, world!"))
+	}
+	handler := middleware.HandlerFuncs(append(middlewareSlice, f)...)
+	req, err := http.NewRequest("GET", "localhost:8080", nil)
+	assert.Nil(t, err)
+	w := httptest.NewRecorder()
+	handler(w, req)
+	assert.Equal(t, "5", w.Header().Get("MIDDLEWARE-5"))
+	assert.Equal(t, "Hello, world!", w.Body.String())
 }
