@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	middleware "github.com/dring1/jwt-oauth/middlewares"
+	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/stretchr/testify/assert"
 )
 

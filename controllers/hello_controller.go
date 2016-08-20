@@ -1,11 +1,8 @@
 package controllers
 
-import (
-	"log"
-	"net/http"
-)
+import "net/http"
 
 func HelloController(w http.ResponseWriter, r *http.Request) {
-	log.Println("Hi!")
+	w.WriteHeader(201)
 	w.Write([]byte("<h1>Hello, world!</h1>"))
 }

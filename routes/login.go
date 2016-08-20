@@ -85,7 +85,6 @@ func OldHttpHandler(r *mux.Router, loginHandler http.Handler, callbackHandler ht
 		}
 	}
 	stateConfig := gologin.DebugOnlyCookieConfig
-	// log.Println(loginHandler, callbackHandler)
 	// state param cookies require HTTPS by default; disable for localhost development
 	if loginHandler == nil {
 		loginHandler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(oauth2Config, nil)))

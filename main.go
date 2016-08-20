@@ -11,11 +11,10 @@ import (
 	"os"
 
 	"github.com/dring1/jwt-oauth/config"
-	"github.com/dring1/jwt-oauth/middlewares"
+	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/models"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/dring1/jwt-oauth/services"
-	"github.com/justinas/alice"
 	"github.com/pkg/errors"
 )
 
@@ -122,7 +121,7 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 	var err error
 	value = os.Getenv(key)
 	if value.(string) == "" {
-		log.Printf("Did not set %s therefore using default", key)
+		log.Printf("Did not set %s - using default", key)
 		value, err = defaultValue()
 	}
 	return value, err
@@ -130,11 +129,12 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 
 func main() {
 	router := routes.New(c.GitHubClientID, c.GitHubClientSecret)
-	chain := alice.New(middlewares.LoggingHandler, middlewares.RecoverHandler).Then(router)
-	fn := func(w http.ResponseWriter, r *http.Request) {
-
+	middlewares := []middleware.Middleware{
+		middleware.NewApacheLoggingHandler(os.Stdout),
 	}
+	middlewares = append(middlewares, middleware.DefaultMiddleWare()...)
+
 	log.Printf("Serving on port :%d", c.Port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), chain)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, middlewares...))
 	log.Fatal(err)
 }
