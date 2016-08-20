@@ -20,5 +20,5 @@ func Handlers(handler http.Handler, middlewares ...Middleware) http.Handler {
 type Middleware func(http.Handler) http.Handler
 
 func DefaultMiddleWare() []Middleware {
-	return []Middleware{RecoverHandler, ResponseWriterWrapper}
+	return []Middleware{RecoverHandler}
 }

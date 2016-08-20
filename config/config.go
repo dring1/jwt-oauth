@@ -1,5 +1,7 @@
 package config
 
+import "io"
+
 var environments = map[string]string{
 	"production": "production.json",
 	"staging":    "staging.json",
@@ -14,6 +16,7 @@ type Cfg struct {
 	GitHubClientID     string
 	GitHubClientSecret string
 	OauthRedirectURL   string
+	LoggingEndpoint    io.Writer
 }
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {

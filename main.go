@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -107,9 +108,19 @@ func init() {
 		c.OauthRedirectURL = rdURL.(string)
 		return nil
 	}
+	loggingEndpoint := func(c *config.Cfg) error {
+		le, err := getEnvVal("LOGGING_ENDPOINT", func() (interface{}, error) {
+			return os.Stdout, nil
+		})
+		if err != nil {
+			return err
+		}
+		c.LoggingEndpoint = le.(io.Writer)
+		return nil
+	}
 	var err error
 	c, err = config.NewConfig(privateKey, publicKey, port,
-		gitHubClientID, gitHubClientSecret, oauthRedirectURL)
+		gitHubClientID, gitHubClientSecret, oauthRedirectURL, loggingEndpoint)
 	if err != nil {
 		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
@@ -130,7 +141,7 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 func main() {
 	router := routes.New(c.GitHubClientID, c.GitHubClientSecret)
 	middlewares := []middleware.Middleware{
-		middleware.NewApacheLoggingHandler(os.Stdout),
+		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
 	}
 	middlewares = append(middlewares, middleware.DefaultMiddleWare()...)
 
