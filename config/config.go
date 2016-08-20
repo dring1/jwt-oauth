@@ -2,12 +2,6 @@ package config
 
 import "io"
 
-var environments = map[string]string{
-	"production": "production.json",
-	"staging":    "staging.json",
-	"test":       "test.json",
-}
-
 type Cfg struct {
 	JWTExpirationDelta int
 	PrivateKey         []byte
