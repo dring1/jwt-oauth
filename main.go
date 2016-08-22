@@ -13,7 +13,6 @@ import (
 
 	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/middleware"
-	"github.com/dring1/jwt-oauth/models"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/dring1/jwt-oauth/services"
 	"github.com/pkg/errors"
@@ -25,7 +24,7 @@ type DefaultValFunc func() (interface{}, error)
 
 func init() {
 	services.Database()
-	services.Database().HasTable(&models.User{})
+	services.Database().HasTable(&model.User{})
 	var PrivateKey *pem.Block
 	privateKey := func(c *config.Cfg) error {
 		privateKeyPemBlock, err := getEnvVal("PRIVATE_KEY", func() (interface{}, error) {

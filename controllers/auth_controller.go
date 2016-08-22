@@ -11,12 +11,15 @@ import (
 
 	"github.com/dghubble/ctxh"
 	"github.com/dghubble/gologin/github"
+	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/lib/errors"
-	"github.com/dring1/jwt-oauth/models"
-	"github.com/dring1/jwt-oauth/services"
 )
 
-func Login(callback func(*models.User)) ctxh.ContextHandler {
+type AuthController struct {
+	CacheService *cache.CacheService
+}
+
+func Login(callback func(*model.User)) ctxh.ContextHandler {
 	fn := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		githubUser, err := github.UserFromContext(ctx)
 		log.Println("Github user", *githubUser)
@@ -65,7 +68,7 @@ func Login(callback func(*models.User)) ctxh.ContextHandler {
 }
 
 func RefreshToken(w http.ResponseWriter, r *http.Request) {
-	requestUser := new(models.User)
+	requestUser := new(model.User)
 	json.NewDecoder(r.Body).Decode(&requestUser)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -78,7 +81,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 
-	requestUser := new(models.User)
+	requestUser := new(model.User)
 	json.NewDecoder(r.Body).Decode(&requestUser)
 	err := services.Logout(r)
 	w.Header().Set("Content-Type", "application/json")

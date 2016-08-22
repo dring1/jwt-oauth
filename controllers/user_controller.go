@@ -1,14 +1,9 @@
 package controllers
 
-import (
-	"time"
+import "time"
 
-	"github.com/dring1/jwt-oauth/models"
-	"github.com/dring1/jwt-oauth/services"
-)
-
-func FindUser(email string) (*models.User, error) {
-	u := new(models.User)
+func FindUser(email string) (*model.User, error) {
+	u := new(model.User)
 
 	if err := services.Database().Find(u, "email = ?", email).Error; err != nil {
 		return nil, err
@@ -16,8 +11,8 @@ func FindUser(email string) (*models.User, error) {
 	return u, nil
 }
 
-func CreateUser(email string) (*models.User, error) {
-	var user = &models.User{
+func CreateUser(email string) (*model.User, error) {
+	var user = &model.User{
 		Email:        email,
 		LastLoggedIn: time.Now(),
 	}

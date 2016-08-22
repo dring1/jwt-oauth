@@ -6,13 +6,12 @@ import (
 )
 
 func Login(key string) ([]byte, error) {
-	authBackend := JWTBackend()
 
-	if ok := JWTBackend().Authenticate(key); !ok {
+	if ok := JWTBackend.Authenticate(key); !ok {
 		// return unauthorized
 		return []byte(""), nil
 	}
-	token, err := authBackend.GenerateToken(key)
+	token, err := JWTBackend.GenerateToken(key)
 	if err != nil {
 		return []byte(""), err
 	}
@@ -24,7 +23,7 @@ func Login(key string) ([]byte, error) {
 
 func RefreshToken(key string) ([]byte, error) {
 	// jwtBackend := services.JWTBackend
-	token, err := JWTBackend().GenerateToken(key)
+	token, err := JWTBackend.GenerateToken(key)
 	if err != nil {
 		return nil, err
 	}
