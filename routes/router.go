@@ -20,10 +20,10 @@ type R struct {
 func New(gitHubClientID, gitHubClientSecret string) *mux.Router {
 	router := mux.NewRouter()
 	routes := []Route{
-		&LoginRoute{
-			GitHubClientID:     gitHubClientID,
-			GitHubClientSecret: gitHubClientSecret,
-		},
+		// &LoginRoute{
+		// 	GitHubClientID:     gitHubClientID,
+		// 	GitHubClientSecret: gitHubClientSecret,
+		// },
 		&HelloRoute{},
 		&HomeRoute{StaticFilePath: "static"},
 	}

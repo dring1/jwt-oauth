@@ -13,13 +13,14 @@ import (
 	"github.com/dghubble/gologin/github"
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/lib/errors"
+	"github.com/dring1/jwt-oauth/models"
 )
 
 type AuthController struct {
 	CacheService *cache.CacheService
 }
 
-func Login(callback func(*model.User)) ctxh.ContextHandler {
+func Login(callback func(*models.User)) ctxh.ContextHandler {
 	fn := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		githubUser, err := github.UserFromContext(ctx)
 		log.Println("Github user", *githubUser)
