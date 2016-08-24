@@ -12,6 +12,8 @@ import (
 	"os"
 
 	"github.com/dring1/jwt-oauth/config"
+	"github.com/dring1/jwt-oauth/controllers"
+	"github.com/dring1/jwt-oauth/database"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/pkg/errors"
@@ -142,6 +144,10 @@ func main() {
 		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
 	}
 	middlewares = append(middlewares, middleware.DefaultMiddleWare()...)
+
+	db := database.NewDatabaseService()
+
+	controllers.New(db)
 
 	log.Printf("Serving on port :%d", c.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, middlewares...))

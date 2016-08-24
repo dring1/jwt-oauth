@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 
@@ -9,24 +10,38 @@ import (
 
 type Controller interface {
 	http.Handler
-	Route() string
-	Methods() []string
+}
+
+type C struct {
+	Route   string
+	Methods []string
 }
 
 func New(services ...services.Service) []Controller {
 	ctrls := []Controller{
-		&HellController{},
+		&HellController{
+			C: C{
+				Route:   "/hello",
+				Methods: []string{"GET"},
+			},
+			// DatabaseService: nil,
+			// CacheService:    nil,
+		},
 	}
 
 	for _, ctrl := range ctrls {
 		val := reflect.ValueOf(ctrl).Elem()
 		for index := 0; index < val.NumField(); index++ {
-			for s := range services {
-				if val.Type().Field(index).Name == reflect.TypeOf(s).String() {
-					// set the value of the field to the service
+			for _, s := range services {
+				// fmt.Println(val.Type().Field(index).Type.String(), reflect.TypeOf(s).String())
+				if t := val.Type().Field(index).Type.String(); t == reflect.TypeOf(s).String() {
+					if x := val.Field(index); x.CanSet() {
+						x.Set(reflect.ValueOf(s))
+					}
 				}
 			}
 		}
+		fmt.Printf("%+v", ctrl)
 	}
 	return ctrls
 }

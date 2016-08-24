@@ -13,7 +13,7 @@ func HelloController(w http.ResponseWriter, r *http.Request) {
 }
 
 type HellController struct {
-	Controller
+	C
 	DatabaseService *database.DatabaseService
 	CacheService    *cache.CacheService
 }

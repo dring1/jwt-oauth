@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/dring1/jwt-oauth/models"
+	"github.com/dring1/jwt-oauth/services"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -20,6 +21,10 @@ func NewDatabaseService() *DatabaseService {
 	d := &DatabaseService{db}
 	d.AutoMigrate(&models.User{})
 	return d
+}
+
+func (db *DatabaseService) RegisterService(s *[]services.Service) {
+
 }
 
 // func (db *DataBase) InsertSubmissions(subs []*reddit.Submission) error {
