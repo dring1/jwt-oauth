@@ -10,6 +10,9 @@ import (
 
 type Controller interface {
 	http.Handler
+
+	Route() string
+	Methods() []string
 }
 
 type C struct {
@@ -19,13 +22,11 @@ type C struct {
 
 func New(services ...services.Service) []Controller {
 	ctrls := []Controller{
-		&HellController{
+		&HelloController{
 			C: C{
 				Route:   "/hello",
 				Methods: []string{"GET"},
 			},
-			// DatabaseService: nil,
-			// CacheService:    nil,
 		},
 	}
 
@@ -33,7 +34,6 @@ func New(services ...services.Service) []Controller {
 		val := reflect.ValueOf(ctrl).Elem()
 		for index := 0; index < val.NumField(); index++ {
 			for _, s := range services {
-				// fmt.Println(val.Type().Field(index).Type.String(), reflect.TypeOf(s).String())
 				if t := val.Type().Field(index).Type.String(); t == reflect.TypeOf(s).String() {
 					if x := val.Field(index); x.CanSet() {
 						x.Set(reflect.ValueOf(s))

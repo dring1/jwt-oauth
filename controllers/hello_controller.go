@@ -7,27 +7,27 @@ import (
 	"github.com/dring1/jwt-oauth/database"
 )
 
-func HelloController(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(201)
-	w.Write([]byte("<h1>Hello, world!</h1>"))
-}
-
-type HellController struct {
+// func HelloController(w http.ResponseWriter, r *http.Request) {
+// 	w.WriteHeader(201)
+// 	w.Write([]byte("<h1>Hello, world!</h1>"))
+// }
+//
+type HelloController struct {
 	C
 	DatabaseService *database.DatabaseService
 	CacheService    *cache.CacheService
 }
 
-func (h *HellController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(201)
 	w.Write([]byte("<h1>Hello, world!</h1>"))
 }
 
-func (h *HellController) Route() string {
-	return "/Word"
+func (h *HelloController) Route() string {
+	return h.C.Route
 }
 
-func (h *HellController) Methods() []string {
-	return []string{"GET"}
+func (h *HelloController) Methods() []string {
+	return h.C.Methods
 }

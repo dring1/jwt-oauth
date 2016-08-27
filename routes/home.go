@@ -6,19 +6,19 @@ import (
 )
 
 type HomeRoute struct {
+	R
 	StaticFilePath string
 }
 
-func (r *HomeRoute) GenHttpHandlers() ([]*R, error) {
+func (r *HomeRoute) ServeHTTP(w http.ResponseWriter, res *http.Request) {
 	_, err := filepath.Abs(r.StaticFilePath)
-	if err != nil {
-		return nil, err
-	}
-	return []*R{
-		&R{
-			Path:    "/",
-			Methods: []string{"GET"},
-			Handler: http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath))),
-		},
-	}, nil
+	http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath)))
+}
+
+func (r *HomeRoute) GetRoute() string {
+	return r.Route
+}
+
+func (r *HomeRoute) GetMethods() []string {
+	return r.Methods
 }
