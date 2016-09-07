@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"net/http"
-
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/database"
 )
@@ -13,21 +11,33 @@ import (
 // }
 //
 type HelloController struct {
-	C
+	// C
 	DatabaseService *database.DatabaseService
 	CacheService    *cache.CacheService
 }
 
-func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	w.WriteHeader(201)
+// 	w.Write([]byte("<h1>Hello, world!</h1>"))
+// }
+//
+// func (h *HelloController) GetRoute() string {
+// 	return h.C.Route
+// }
+//
+// func (h *HelloController) GetMethods() []string {
+// 	return h.C.Methods
+// }
 
-	w.WriteHeader(201)
-	w.Write([]byte("<h1>Hello, world!</h1>"))
+func (c *HelloController) Create(obj interface{}) error {
+	return nil
 }
-
-func (h *HelloController) Route() string {
-	return h.C.Route
+func (c *HelloController) Read(obj interface{}) error {
+	return nil
 }
-
-func (h *HelloController) Methods() []string {
-	return h.C.Methods
+func (c *HelloController) Update(obj interface{}) error {
+	return nil
+}
+func (c *HelloController) Delete(obj interface{}) error {
+	return nil
 }

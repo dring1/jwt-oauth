@@ -139,15 +139,21 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 }
 
 func main() {
-	router := routes.New(c.GitHubClientID, c.GitHubClientSecret)
+	db := database.NewDatabaseService()
+	// ch := cache.NewCacheService()
+	ctrls := controllers.New(db)
+	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, ctrls)
+
+	// cvtSlice := make([]routes.Route, len(ctrls))
+	// for i := range ctrls {
+	// 	cvtSlice[i] = ctrls[i]
+	// }
+	// router.Register(cvtSlice)
+
 	middlewares := []middleware.Middleware{
 		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
 	}
 	middlewares = append(middlewares, middleware.DefaultMiddleWare()...)
-
-	db := database.NewDatabaseService()
-
-	controllers.New(db)
 
 	log.Printf("Serving on port :%d", c.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, middlewares...))

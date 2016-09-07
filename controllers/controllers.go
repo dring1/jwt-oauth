@@ -1,33 +1,21 @@
 package controllers
 
 import (
-	"fmt"
-	"net/http"
 	"reflect"
 
 	"github.com/dring1/jwt-oauth/services"
 )
 
 type Controller interface {
-	http.Handler
-
-	Route() string
-	Methods() []string
-}
-
-type C struct {
-	Route   string
-	Methods []string
+	Create(interface{}) error
+	Read(interface{}) error
+	Update(interface{}) error
+	Delete(interface{}) error
 }
 
 func New(services ...services.Service) []Controller {
 	ctrls := []Controller{
-		&HelloController{
-			C: C{
-				Route:   "/hello",
-				Methods: []string{"GET"},
-			},
-		},
+		&HelloController{},
 	}
 
 	for _, ctrl := range ctrls {
@@ -41,7 +29,6 @@ func New(services ...services.Service) []Controller {
 				}
 			}
 		}
-		fmt.Printf("%+v", ctrl)
 	}
 	return ctrls
 }

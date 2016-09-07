@@ -1,52 +1,73 @@
 package routes
 
 import (
+	"log"
 	"net/http"
+	"reflect"
+	"strings"
 
+	"github.com/dring1/jwt-oauth/controllers"
 	"github.com/gorilla/mux"
 )
 
 // type Route interface {
 // 	GenHttpHandlers() ([]*R, error)
 // }
-type R struct {
-	Route string
+type Route struct {
 	http.Handler
+	Path    string
 	Methods []string
 }
 
-type Route interface {
+type RouteHandler interface {
 	http.Handler
-	GetRoute() string
+	GetPath() string
 	GetMethods() []string
 }
 
-func New(gitHubClientID, gitHubClientSecret string) *mux.Router {
-	router := mux.NewRouter()
-	routes := []Route{
+type Router struct {
+	*mux.Router
+}
+
+func New(gitHubClientID, gitHubClientSecret string, controllers []controllers.Controller) *Router {
+	router := Router{mux.NewRouter()}
+	routes := []RouteHandler{
 		// &LoginRoute{
 		// 	GitHubClientID:     gitHubClientID,
 		// 	GitHubClientSecret: gitHubClientSecret,
 		// },
 		// &HelloRoute{},
-		&HomeRoute{StaticFilePath: "static"},
+		&HomeRoute{Route: Route{Path: "/home", Methods: []string{"GET"}}, StaticFilePath: "static"},
 	}
-	register(router, routes)
-	return router
+	for _, r := range routes {
+		s := reflect.TypeOf(r).Elem()
+		for index := 0; index < s.NumField(); index++ {
+			field := s.Field(index)
+			if val, ok := field.Tag.Lookup("controller"); ok && val != "" {
+				for _, ctrl := range controllers {
+					if reflect.TypeOf(ctrl).Elem().Name() == val {
+						val := reflect.ValueOf(r).Elem()
+						if val.Field(index).CanSet() {
+							val.Field(index).Set(reflect.ValueOf(ctrl))
+						}
+						break
+					}
+
+				}
+			}
+
+		}
+
+	}
+	router.Register(routes)
+	return &router
 }
 
-func register(router *mux.Router, routes []Route) error {
+func (r *Router) Register(routes []RouteHandler) error {
 
 	for _, route := range routes {
-		router.Handle(route.GetRoute(), route)
-		// rs, err := route.GenHttpHandlers()
-		// if err != nil {
-		// 	return err
-		// }
-		// for _, r := range rs {
-		// 	log.Printf("Registering %s with handlers for HTTP methods: %s", r.Path, strings.Join(r.Methods, ","))
-		// 	router.Handle(r.Path, r.Handler).Methods(r.Methods...)
-		// }
+		r.Handle(route.GetPath(), route).Methods(route.GetMethods()...)
+		log.Printf("Registering %s with handlers for HTTP methods: %s", route.GetPath(), strings.Join(route.GetMethods(), ","))
 	}
 	return nil
 }
