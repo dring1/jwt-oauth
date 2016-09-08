@@ -3,23 +3,21 @@ package routes
 import (
 	"net/http"
 	"path/filepath"
-
-	"github.com/dring1/jwt-oauth/controllers"
 )
 
 type HomeRoute struct {
 	Route
 	StaticFilePath string
-	Controller     controllers.Controller `controller:"HelloController"`
+	// Controller     controllers.Controller `controller:"HelloController"`
 }
 
 func (r *HomeRoute) ServeHTTP(w http.ResponseWriter, res *http.Request) {
 	_, err := filepath.Abs(r.StaticFilePath)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte("Error"))
+		w.WriteHeader(404)
+		w.Write([]byte("Not Found"))
 	}
-	http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath)))
+	http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath))).ServeHTTP(w, res)
 }
 
 func (r *HomeRoute) GetPath() string {

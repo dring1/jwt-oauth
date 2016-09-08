@@ -11,6 +11,7 @@ type Cfg struct {
 	GitHubClientSecret string
 	OauthRedirectURL   string
 	LoggingEndpoint    io.Writer
+	RedisEndpoint      string
 }
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {

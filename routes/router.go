@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dring1/jwt-oauth/controllers"
+	"github.com/dring1/jwt-oauth/routes/githubRoute"
 	"github.com/gorilla/mux"
 )
 
@@ -15,8 +16,9 @@ import (
 // }
 type Route struct {
 	http.Handler
-	Path    string
-	Methods []string
+	Path        string
+	Methods     []string
+	Middlewares []http.Handler
 }
 
 type RouteHandler interface {
@@ -29,7 +31,7 @@ type Router struct {
 	*mux.Router
 }
 
-func New(gitHubClientID, gitHubClientSecret string, controllers []controllers.Controller) *Router {
+func New(gitHubClientID, gitHubClientSecret, redirectUrl string, controllers []controllers.Controller) *Router {
 	router := Router{mux.NewRouter()}
 	routes := []RouteHandler{
 		// &LoginRoute{
@@ -37,7 +39,8 @@ func New(gitHubClientID, gitHubClientSecret string, controllers []controllers.Co
 		// 	GitHubClientSecret: gitHubClientSecret,
 		// },
 		// &HelloRoute{},
-		&HomeRoute{Route: Route{Path: "/home", Methods: []string{"GET"}}, StaticFilePath: "static"},
+		&githubRoute.GithubLoginRoute{},
+		&HomeRoute{Route: Route{Path: "/", Methods: []string{"GET"}}, StaticFilePath: "./static"},
 	}
 	for _, r := range routes {
 		s := reflect.TypeOf(r).Elem()
@@ -52,12 +55,9 @@ func New(gitHubClientID, gitHubClientSecret string, controllers []controllers.Co
 						}
 						break
 					}
-
 				}
 			}
-
 		}
-
 	}
 	router.Register(routes)
 	return &router

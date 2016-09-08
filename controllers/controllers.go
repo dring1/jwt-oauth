@@ -1,10 +1,6 @@
 package controllers
 
-import (
-	"reflect"
-
-	"github.com/dring1/jwt-oauth/services"
-)
+import "reflect"
 
 type Controller interface {
 	Create(interface{}) error
@@ -13,7 +9,7 @@ type Controller interface {
 	Delete(interface{}) error
 }
 
-func New(services ...services.Service) []Controller {
+func New(services ...interface{}) []Controller {
 	ctrls := []Controller{
 		&HelloController{},
 	}

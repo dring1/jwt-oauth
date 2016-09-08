@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/controllers"
 	"github.com/dring1/jwt-oauth/database"
@@ -118,9 +119,19 @@ func init() {
 		c.LoggingEndpoint = le.(io.Writer)
 		return nil
 	}
+	redisEndPoint := func(c *config.Cfg) error {
+		re, err := getEnvVal("REDIS_ENDPOINT", func() (interface{}, error) {
+			return "localhost:6379", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.RedisEndpoint = re.(string)
+		return nil
+	}
 	var err error
 	c, err = config.NewConfig(privateKey, publicKey, port,
-		gitHubClientID, gitHubClientSecret, oauthRedirectURL, loggingEndpoint)
+		gitHubClientID, gitHubClientSecret, oauthRedirectURL, loggingEndpoint, redisEndPoint)
 	if err != nil {
 		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
@@ -139,17 +150,17 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 }
 
 func main() {
-	db := database.NewDatabaseService()
-	// ch := cache.NewCacheService()
-	ctrls := controllers.New(db)
-	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, ctrls)
+	// Init services
+	db, _ := database.NewDatabaseService()
+	ch, _ := cache.NewCacheService(c.RedisEndpoint)
 
-	// cvtSlice := make([]routes.Route, len(ctrls))
-	// for i := range ctrls {
-	// 	cvtSlice[i] = ctrls[i]
-	// }
-	// router.Register(cvtSlice)
+	// Init controllers
+	ctrls := controllers.New(db, ch)
 
+	// Init router
+	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, ctrls)
+
+	// Apply middlewares
 	middlewares := []middleware.Middleware{
 		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
 	}
