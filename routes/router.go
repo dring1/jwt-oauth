@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/dring1/jwt-oauth/controllers"
-	"github.com/dring1/jwt-oauth/routes/githubRoute"
 	"github.com/gorilla/mux"
 )
 
@@ -15,16 +14,19 @@ import (
 // 	GenHttpHandlers() ([]*R, error)
 // }
 type Route struct {
-	http.Handler
 	Path        string
 	Methods     []string
 	Middlewares []http.Handler
 }
 
+type R struct {
+	Path    string
+	Methods []string
+	Handler http.Handler
+}
+
 type RouteHandler interface {
-	http.Handler
-	GetPath() string
-	GetMethods() []string
+	NewHandler() (*R, error)
 }
 
 type Router struct {
@@ -34,12 +36,9 @@ type Router struct {
 func New(gitHubClientID, gitHubClientSecret, redirectUrl string, controllers []controllers.Controller) *Router {
 	router := Router{mux.NewRouter()}
 	routes := []RouteHandler{
-		// &LoginRoute{
-		// 	GitHubClientID:     gitHubClientID,
-		// 	GitHubClientSecret: gitHubClientSecret,
-		// },
-		// &HelloRoute{},
-		&githubRoute.GithubLoginRoute{},
+		&GithubLoginRoute{Route: Route{Path: "/github/login", Methods: []string{"GET"}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
+		&GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{"GET"}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
+		&UserProfileRoute{Route: Route{Path: "/profile", Methods: []string{"GET"}}},
 		&HomeRoute{Route: Route{Path: "/", Methods: []string{"GET"}}, StaticFilePath: "./static"},
 	}
 	for _, r := range routes {
@@ -66,8 +65,12 @@ func New(gitHubClientID, gitHubClientSecret, redirectUrl string, controllers []c
 func (r *Router) Register(routes []RouteHandler) error {
 
 	for _, route := range routes {
-		r.Handle(route.GetPath(), route).Methods(route.GetMethods()...)
-		log.Printf("Registering %s with handlers for HTTP methods: %s", route.GetPath(), strings.Join(route.GetMethods(), ","))
+		h, err := route.NewHandler()
+		if err != nil {
+			return err
+		}
+		r.Handle(h.Path, h.Handler).Methods(h.Methods...)
+		log.Printf("Registering %s with handlers for HTTP methods: %s", h.Path, strings.Join(h.Methods, ","))
 	}
 	return nil
 }

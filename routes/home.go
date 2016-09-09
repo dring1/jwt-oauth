@@ -11,19 +11,15 @@ type HomeRoute struct {
 	// Controller     controllers.Controller `controller:"HelloController"`
 }
 
-func (r *HomeRoute) ServeHTTP(w http.ResponseWriter, res *http.Request) {
+func (r *HomeRoute) NewHandler() (*R, error) {
 	_, err := filepath.Abs(r.StaticFilePath)
 	if err != nil {
-		w.WriteHeader(404)
-		w.Write([]byte("Not Found"))
+		return nil, err
 	}
-	http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath))).ServeHTTP(w, res)
-}
 
-func (r *HomeRoute) GetPath() string {
-	return r.Route.Path
-}
-
-func (r *HomeRoute) GetMethods() []string {
-	return r.Route.Methods
+	return &R{
+		Path:    r.Path,
+		Methods: r.Methods,
+		Handler: http.StripPrefix("/", http.FileServer(http.Dir(r.StaticFilePath))),
+	}, nil
 }

@@ -25,8 +25,6 @@ var c *config.Cfg
 type DefaultValFunc func() (interface{}, error)
 
 func init() {
-	// services.Database()
-	// services.Database().HasTable(&model.User{})
 	var PrivateKey *pem.Block
 	privateKey := func(c *config.Cfg) error {
 		privateKeyPemBlock, err := getEnvVal("PRIVATE_KEY", func() (interface{}, error) {

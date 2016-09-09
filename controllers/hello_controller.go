@@ -13,7 +13,7 @@ import (
 type HelloController struct {
 	// C
 	DatabaseService *database.DatabaseService
-	CacheService    *cache.CacheService
+	CacheService    *cache.Service
 }
 
 // func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
