@@ -150,7 +150,7 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 func main() {
 	// Init services
 	db, _ := database.NewDatabaseService()
-	ch, _ := cache.NewCacheService(c.RedisEndpoint)
+	ch, _ := cache.New(c.RedisEndpoint)
 
 	// Init controllers
 	ctrls := controllers.New(db, ch)

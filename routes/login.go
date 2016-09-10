@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -10,7 +9,9 @@ import (
 	"github.com/dghubble/ctxh"
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/github"
+
 	"github.com/dghubble/sessions"
+	"github.com/dring1/jwt-oauth/app/users"
 
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -56,6 +57,7 @@ type GithubCallbackRoute struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURL  string
+	UserService  users.Service
 }
 
 func (ghr *GithubCallbackRoute) NewHandler() (*R, error) {
@@ -66,7 +68,7 @@ func (ghr *GithubCallbackRoute) NewHandler() (*R, error) {
 		Endpoint:     githubOAuth2.Endpoint,
 	}
 	stateConfig := gologin.DebugOnlyCookieConfig
-	handler := ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, issueSession(), nil)))
+	handler := ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, ghr.defaultLoginHandler(), nil)))
 
 	return &R{
 		Path:    ghr.Path,
@@ -91,15 +93,29 @@ func issueSession() ctxh.ContextHandler {
 	return ctxh.ContextHandlerFunc(fn)
 }
 
-func defaultLoginHandler() http.Handler {
+func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		log.Println("retrieving github user from context")
 		githubUser, err := github.UserFromContext(ctx)
 		if err != nil {
 			w.WriteHeader(500)
-			w.Write([]byte(fmt.Errorf("Error retrieving github user")))
+			w.Write([]byte("Error retrieving github user"))
 
 		}
+		log.Println(githubUser)
+		err = gcr.UserService.Authenticate(*githubUser.Email)
+		if err != nil {
+			// Unable to authenticate user
+			// Respond with 401?
+			// http.Error(w, , 401)
+			
+			http.Redirect(w, r, "/error", 401)
+		} else {
+
+		}
+		http.Redirect(w, r, "/profile", http.StatusFound)
 	}
+
+	return ctxh.ContextHandlerFunc(handler)
 }
