@@ -40,6 +40,8 @@ func New(gitHubClientID, gitHubClientSecret, redirectUrl string, controllers []c
 		&GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{"GET"}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
 		&UserProfileRoute{Route: Route{Path: "/profile", Methods: []string{"GET"}}},
 		&HomeRoute{Route: Route{Path: "/", Methods: []string{"GET"}}, StaticFilePath: "./static"},
+		&HelloRoute{Route: Route{Path: "/hello", Methods: []string{"GET"}}},
+		&ErrorRoute{Route: Route{Path: "/error", Methods: []string{"GET"}}},
 	}
 	for _, r := range routes {
 		s := reflect.TypeOf(r).Elem()
