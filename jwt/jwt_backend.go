@@ -1,4 +1,4 @@
-package jwtbackend
+package jsonwebtoken
 
 import (
 	"time"
@@ -10,20 +10,15 @@ type JWTService struct {
 	privateKey, PublicKey []byte
 	TokenDuration         int
 	ExpireOffset          int
+	TokenISS              string
+	TokenSub              string
 }
 
-const (
-	TokenDuration = 72
-	ExpireOffset  = 3600
-)
+type TimeStamp int64
 
-func NewJWTBackend(privateKey []byte, publicKey []byte, tokenDuration, expireOffset int) (*JWTService, error) {
-	return &JWTService{
-		privateKey:    privateKey,
-		PublicKey:     publicKey,
-		TokenDuration: TokenDuration,
-		ExpireOffset:  expireOffset,
-	}, nil
+type Service interface {
+	NewToken()
+	TimeToExpire(TimeStamp)
 }
 
 type CustomClaims struct {
@@ -32,9 +27,9 @@ type CustomClaims struct {
 }
 
 func (backend *JWTService) GenerateToken(userID string) (string, error) {
-	exp := time.Now().Add(time.Hour * 1).Unix()
-	iss := "jwt-oauth.com"
-	sub := "jwt-oauth"
+	exp := time.Now().Add(time.Duration(backend.ExpireOffset)).Unix()
+	iss := backend.TokenISS
+	sub := backend.TokenSub
 	claims := CustomClaims{
 		userID,
 		jwt.StandardClaims{
@@ -52,21 +47,19 @@ func (backend *JWTService) GenerateToken(userID string) (string, error) {
 }
 
 // Insert into cache here ?
-func (backend *JWTService) Authenticate(interface{}) bool {
-	return true
-}
+// func (backend *JWTService) Authenticate(interface{}) bool {
+// 	return true
+// }
 
-func (backend *JWTService) Logout(tokenString string, token *jwt.Token) error {
-	return nil
-}
+// func (backend *JWTService) Logout(tokenString string, token *jwt.Token) error {
+// 	return nil
+// }
 
-func (backend *JWTService) TimeToExpire(timestamp interface{}) int64 {
+func (backend *JWTService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 
-	if ts, ok := timestamp.(float64); ok {
-		tm := time.Unix(int64(ts), 0)
-		if remainder := tm.Sub(time.Now()); remainder > 0 {
-			return int64(remainder.Seconds()) + ExpireOffset
-		}
+	tm := time.Unix(int64(timestamp), 0)
+	if remainder := tm.Sub(time.Now()); remainder > 0 {
+		return TimeStamp(int(remainder.Seconds()) + backend.ExpireOffset)
 	}
-	return ExpireOffset
+	return 0
 }

@@ -2,16 +2,16 @@ package sessions
 
 import "github.com/dring1/jwt-oauth/cache"
 
-type Session interface {
-	Create() error
+type Service interface {
+	New() error
 	Delete() error
 }
 
-type Service struct {
+type S struct {
 	Cache *cache.Service
 }
 
-func (s *Service) Create() error {
-	// TODO: Push TTL
+func (s *S) New(key string) error {
+
 	return nil
 }

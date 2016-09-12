@@ -11,6 +11,7 @@ import (
 	"github.com/dghubble/gologin/github"
 
 	"github.com/dghubble/sessions"
+	s "github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 
 	"golang.org/x/oauth2"
@@ -27,10 +28,11 @@ var sessionStore = sessions.NewCookieStore([]byte(sessionSecret), nil)
 
 type GithubLoginRoute struct {
 	Route
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	UserService  users.Service
+	ClientID       string
+	ClientSecret   string
+	RedirectURL    string
+	UserService    users.Service
+	SessionService s.Service
 }
 
 func (ghr *GithubLoginRoute) NewHandler() (*R, error) {
@@ -103,17 +105,22 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 			w.Write([]byte("Error retrieving github user"))
 
 		}
-		log.Println(githubUser)
+		// log.Println(githubUser)
 		err = gcr.UserService.Authenticate(*githubUser.Email)
 		if err != nil {
-			// Unable to authenticate user
-			// Respond with 401?
-			// http.Error(w, , 401)
-			
-			http.Redirect(w, r, "/error", 401)
-		} else {
-
+			// Failed to Authenticate
+			w.WriteHeader(401)
+			ErrorHandler(w, r)
+			return
 		}
+
+		token, err := gcr.SessionService.New(*githubUser.Email)
+		if err != nil {
+			w.WriteHeader(500)
+			ErrorHandler(w, r)
+		}
+		w.WriteHeader(201)
+		w.Write([]byte(token))
 		http.Redirect(w, r, "/profile", http.StatusFound)
 	}
 
