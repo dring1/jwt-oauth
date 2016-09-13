@@ -1,9 +1,9 @@
-package jsonwebtoken
+package jwt
 
 import (
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	_jwt "github.com/dgrijalva/jwt-go"
 )
 
 type JWTService struct {
@@ -23,7 +23,12 @@ type Service interface {
 
 type CustomClaims struct {
 	Email string `json:"email"`
-	jwt.StandardClaims
+	_jwt.StandardClaims
+}
+
+func New() (*Service, error) {
+	return nil, nil
+
 }
 
 func (backend *JWTService) GenerateToken(userID string) (string, error) {
@@ -32,13 +37,13 @@ func (backend *JWTService) GenerateToken(userID string) (string, error) {
 	sub := backend.TokenSub
 	claims := CustomClaims{
 		userID,
-		jwt.StandardClaims{
+		_jwt.StandardClaims{
 			ExpiresAt: exp,
 			Issuer:    iss,
 			Subject:   sub,
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := _jwt.NewWithClaims(_jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(backend.privateKey)
 	if err != nil {
 		return "", err

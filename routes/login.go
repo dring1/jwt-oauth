@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -56,10 +57,11 @@ func (ghr *GithubLoginRoute) NewHandler() (*R, error) {
 
 type GithubCallbackRoute struct {
 	Route
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	UserService  users.Service
+	ClientID       string
+	ClientSecret   string
+	RedirectURL    string
+	UserService    users.Service
+	SessionService s.Service
 }
 
 func (ghr *GithubCallbackRoute) NewHandler() (*R, error) {
@@ -120,8 +122,13 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 			ErrorHandler(w, r)
 		}
 		w.WriteHeader(201)
-		w.Write([]byte(token))
+
+		err = json.NewEncoder(w).Encode(token)
+		if err != nil {
+			return
+		}
 		http.Redirect(w, r, "/profile", http.StatusFound)
+
 	}
 
 	return ctxh.ContextHandlerFunc(handler)

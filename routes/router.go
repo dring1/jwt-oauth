@@ -42,11 +42,12 @@ func New(gitHubClientID, gitHubClientSecret, redirectUrl string, controllers []c
 		&HomeRoute{Route: Route{Path: "/", Methods: []string{"GET"}}, StaticFilePath: "./static"},
 		&HelloRoute{Route: Route{Path: "/hello", Methods: []string{"GET"}}},
 	}
+	// Inject services into the routes | Tags or Reflection interface type impl
 	for _, r := range routes {
 		s := reflect.TypeOf(r).Elem()
 		for index := 0; index < s.NumField(); index++ {
 			field := s.Field(index)
-			if val, ok := field.Tag.Lookup("controller"); ok && val != "" {
+			if val, ok := field.Tag.Lookup("service"); ok && val != "" {
 				for _, ctrl := range controllers {
 					if reflect.TypeOf(ctrl).Elem().Name() == val {
 						val := reflect.ValueOf(r).Elem()

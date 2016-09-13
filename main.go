@@ -11,10 +11,12 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/controllers"
 	"github.com/dring1/jwt-oauth/database"
+	"github.com/dring1/jwt-oauth/jwt"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/pkg/errors"
@@ -149,11 +151,13 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 
 func main() {
 	// Init services
-	db, _ := database.NewDatabaseService()
+	db, _ := database.New()
 	ch, _ := cache.New(c.RedisEndpoint)
+	jwtService, _ := jwt.New()
+	us, _ := users.NewService()
 
 	// Init controllers
-	ctrls := controllers.New(db, ch)
+	ctrls := controllers.New(db, ch, jwtService, us)
 
 	// Init router
 	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, ctrls)
