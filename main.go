@@ -155,9 +155,10 @@ func main() {
 	ch, _ := cache.New(c.RedisEndpoint)
 	jwtService, _ := jwt.New()
 	us, _ := users.NewService()
+	ss, _ := sessions.NewService(ch)
 
 	// Init controllers
-	ctrls := controllers.New(db, ch, jwtService, us)
+	ctrls := controllers.New(db, ch, jwtService, us, ss)
 
 	// Init router
 	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, ctrls)
