@@ -1,14 +1,18 @@
 package sessions
 
-import "github.com/dring1/jwt-oauth/cache"
+import (
+	"github.com/dring1/jwt-oauth/cache"
+	"github.com/dring1/jwt-oauth/jwt"
+)
 
 type Service interface {
-	New(string) (*Token, error)
-	Delete(string) error
+	NewSession(string) (*Token, error)
+	DeleteSession(string) error
 }
 
 type Session struct {
-	Cache *cache.Service
+	Cache        *cache.Service
+	TokenService jwt.Service
 }
 
 type Token struct {
@@ -16,19 +20,26 @@ type Token struct {
 	UserEmail string `json:"email"`
 }
 
-func NewService(c *cache.Service) Service {
+func NewService(t jwt.Service, c *cache.Service) (Service, error) {
 	return &Session{
-		c,
-	}
+		Cache:        c,
+		TokenService: t,
+	}, nil
 }
 
 // New - A new session is creating a token with correct TTL
 // And scope
-func (s *Session) New(key string) (*Token, error) {
-
-	return nil, nil
+func (s *Session) NewSession(key string) (*Token, error) {
+	t, err := s.TokenService.NewToken(key)
+	if err != nil {
+		return nil, err
+	}
+	return &Token{
+		UserEmail: key,
+		Value:     t,
+	}, nil
 }
-func (s *Session) Delete(key string) error {
+func (s *Session) DeleteSession(key string) error {
 
 	return nil
 }

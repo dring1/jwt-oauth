@@ -11,11 +11,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
-	"github.com/dring1/jwt-oauth/controllers"
-	"github.com/dring1/jwt-oauth/database"
 	"github.com/dring1/jwt-oauth/jwt"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
@@ -129,9 +128,41 @@ func init() {
 		c.RedisEndpoint = re.(string)
 		return nil
 	}
+	jwtTTL := func(c *config.Cfg) error {
+		re, err := getEnvVal("JWT_TTL", func() (interface{}, error) {
+			return 60 * 10, nil
+		})
+		if err != nil {
+			return err
+		}
+		c.JwtTTL = re.(int)
+		return nil
+	}
+	jwtIss := func(c *config.Cfg) error {
+		re, err := getEnvVal("JWT_ISS", func() (interface{}, error) {
+			return "localhost", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.JwtIss = re.(string)
+		return nil
+	}
+	jwtSub := func(c *config.Cfg) error {
+		re, err := getEnvVal("JWT_SUB", func() (interface{}, error) {
+			return "localhost", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.JwtSub = re.(string)
+		return nil
+	}
 	var err error
 	c, err = config.NewConfig(privateKey, publicKey, port,
-		gitHubClientID, gitHubClientSecret, oauthRedirectURL, loggingEndpoint, redisEndPoint)
+		gitHubClientID, gitHubClientSecret, oauthRedirectURL,
+		loggingEndpoint, redisEndPoint,
+		jwtTTL, jwtIss, jwtSub)
 	if err != nil {
 		log.Fatalf("ERROR: %+v", errors.Wrap(err, "error intializing"))
 	}
@@ -151,17 +182,27 @@ func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
 
 func main() {
 	// Init services
-	db, _ := database.New()
-	ch, _ := cache.New(c.RedisEndpoint)
-	jwtService, _ := jwt.New()
+	// db, _ := database.NewService()
+	ch, _ := cache.NewService(c.RedisEndpoint)
+	tokenService, _ := jwt.NewService(c.PrivateKey, c.PublicKey, c.JwtTTL, c.JWTExpirationDelta, c.JwtIss, c.JwtSub)
 	us, _ := users.NewService()
-	ss, _ := sessions.NewService(ch)
-
+	ss, _ := sessions.NewService(tokenService, ch)
 	// Init controllers
-	ctrls := controllers.New(db, ch, jwtService, us, ss)
+	// ctrls := controllers.New(db, ch, jwtService, us, ss)
+	services := map[string]interface{}{
+		"userService":    us,
+		"sessionService": ss,
+	}
+	// services := []interface{}{
+	// 	// db,
+	// 	// ch,
+	// 	// jwtService,
+	// 	// us,
+	// 	ss,
+	// }
 
 	// Init router
-	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, ctrls)
+	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, services)
 
 	// Apply middlewares
 	middlewares := []middleware.Middleware{

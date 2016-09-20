@@ -10,7 +10,7 @@ type DatabaseService struct {
 	*gorm.DB
 }
 
-func New() (*DatabaseService, error) {
+func NewService() (*DatabaseService, error) {
 	db, err := gorm.Open("postgres", "user=postgres sslmode=disable")
 	if err != nil {
 		return nil, err

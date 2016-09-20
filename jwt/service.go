@@ -8,7 +8,7 @@ import (
 
 type JWTService struct {
 	privateKey, PublicKey []byte
-	TokenDuration         int
+	TokenTTL              int
 	ExpireOffset          int
 	TokenISS              string
 	TokenSub              string
@@ -17,8 +17,8 @@ type JWTService struct {
 type TimeStamp int64
 
 type Service interface {
-	NewToken()
-	TimeToExpire(TimeStamp)
+	NewToken(string) (string, error)
+	TimeToExpire(TimeStamp) TimeStamp
 }
 
 type CustomClaims struct {
@@ -26,12 +26,19 @@ type CustomClaims struct {
 	_jwt.StandardClaims
 }
 
-func New() (*Service, error) {
-	return nil, nil
+func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string) (Service, error) {
+	return &JWTService{
+		privateKey:   privKey,
+		PublicKey:    publicKey,
+		TokenTTL:     tokenTTL,
+		ExpireOffset: expireOffset,
+		TokenISS:     tokISS,
+		TokenSub:     tokSub,
+	}, nil
 
 }
 
-func (backend *JWTService) GenerateToken(userID string) (string, error) {
+func (backend *JWTService) NewToken(userID string) (string, error) {
 	exp := time.Now().Add(time.Duration(backend.ExpireOffset)).Unix()
 	iss := backend.TokenISS
 	sub := backend.TokenSub

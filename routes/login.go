@@ -60,8 +60,8 @@ type GithubCallbackRoute struct {
 	ClientID       string
 	ClientSecret   string
 	RedirectURL    string
-	UserService    users.Service
-	SessionService s.Service
+	UserService    users.Service `service:"userService"`
+	SessionService s.Service     `service:"sessionService"`
 }
 
 func (ghr *GithubCallbackRoute) NewHandler() (*R, error) {
@@ -106,28 +106,30 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 			w.WriteHeader(500)
 			w.Write([]byte("Error retrieving github user"))
 
+			return
 		}
 		// log.Println(githubUser)
 		err = gcr.UserService.Authenticate(*githubUser.Email)
 		if err != nil {
 			// Failed to Authenticate
-			w.WriteHeader(401)
+			w.WriteHeader(http.StatusUnauthorized)
 			ErrorHandler(w, r)
 			return
 		}
 
-		token, err := gcr.SessionService.New(*githubUser.Email)
+		token, err := gcr.SessionService.NewSession(*githubUser.Email)
 		if err != nil {
 			w.WriteHeader(500)
 			ErrorHandler(w, r)
-		}
-		w.WriteHeader(201)
-
-		err = json.NewEncoder(w).Encode(token)
-		if err != nil {
 			return
 		}
-		http.Redirect(w, r, "/profile", http.StatusFound)
+		err = json.NewEncoder(w).Encode(token)
+		if err != nil {
+			w.WriteHeader(500)
+			ErrorHandler(w, r)
+			return
+		}
+		// http.Redirect(w, r, "/profile", http.StatusFound)
 
 	}
 

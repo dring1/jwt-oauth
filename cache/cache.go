@@ -6,7 +6,7 @@ type Service struct {
 	*redis.Client
 }
 
-func New(redisEndpoint string) (*Service, error) {
+func NewService(redisEndpoint string) (*Service, error) {
 	client := Service{redis.NewClient(&redis.Options{
 		Addr:     redisEndpoint,
 		Password: "", // no password set

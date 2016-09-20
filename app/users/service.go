@@ -5,7 +5,6 @@ type Service interface {
 	Create(string) error
 	Delete(string) error
 }
-
 type userService struct{}
 
 func NewService() (Service, error) {

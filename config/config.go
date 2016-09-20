@@ -12,6 +12,9 @@ type Cfg struct {
 	OauthRedirectURL   string
 	LoggingEndpoint    io.Writer
 	RedisEndpoint      string
+	JwtTTL             int
+	JwtIss             string
+	JwtSub             string
 }
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {
