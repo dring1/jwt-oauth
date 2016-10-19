@@ -10,7 +10,7 @@ type ErrorRoute struct {
 	Route
 }
 
-func (er *ErrorRoute) NewHandler() (*R, error) {
+func (er *ErrorRoute) NewHandler() (*Route, error) {
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
 
@@ -22,17 +22,6 @@ func (er *ErrorRoute) NewHandler() (*R, error) {
 		w.WriteHeader(401)
 		w.Write([]byte(existingError.(string)))
 	}
-	return &R{
-		Path:    er.Path,
-		Methods: er.Methods,
-		Handler: http.HandlerFunc(fn),
-	}, nil
-}
-
-func ErrorHandler(w http.ResponseWriter, r *http.Request) {
-	existingError := r.Context().Value(contextkeys.Error)
-	if existingError == nil {
-		existingError = "An error occurred"
-	}
-	w.Write([]byte(existingError.(string)))
+	er.Handler = http.HandlerFunc(fn)
+	return &er.Route, nil
 }

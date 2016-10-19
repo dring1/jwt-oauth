@@ -11,20 +11,16 @@ import (
 type HelloRoute struct {
 	Route
 	StaticFilePath string
-	// Controller     controllers.Controller `controller:"HelloController"`
 }
 
-func (r *HelloRoute) NewHandler() (*R, error) {
+func (r *HelloRoute) CompileRoute() (*Route, error) {
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), contextkeys.Error, errors.UnauthorizedUser)
 		r = r.WithContext(ctx)
 		w.WriteHeader(401)
-		ErrorHandler(w, r)
+		errors.ErrorHandler(w, r)
 	}
-	return &R{
-		Path:    r.Path,
-		Methods: r.Methods,
-		Handler: http.HandlerFunc(fn),
-	}, nil
+	r.Handler = http.HandlerFunc(fn)
+	return &r.Route, nil
 }

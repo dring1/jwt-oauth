@@ -1,6 +1,9 @@
 package config
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 type Cfg struct {
 	JWTExpirationDelta int
@@ -19,7 +22,7 @@ type Cfg struct {
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {
 	c := &Cfg{
-		JWTExpirationDelta: 60,
+		JWTExpirationDelta: (int)(time.Hour.Hours()),
 		PrivateKey:         make([]byte, 10),
 		PublicKey:          make([]byte, 10),
 		Port:               8080,

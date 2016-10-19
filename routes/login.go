@@ -14,6 +14,7 @@ import (
 	"github.com/dghubble/sessions"
 	s "github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
+	"github.com/dring1/jwt-oauth/lib/errors"
 
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -36,7 +37,7 @@ type GithubLoginRoute struct {
 	SessionService s.Service
 }
 
-func (ghr *GithubLoginRoute) NewHandler() (*R, error) {
+func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 	config := &oauth2.Config{
 		ClientID:     ghr.ClientID,
 		ClientSecret: ghr.ClientSecret,
@@ -46,13 +47,8 @@ func (ghr *GithubLoginRoute) NewHandler() (*R, error) {
 
 	stateConfig := gologin.DebugOnlyCookieConfig
 
-	handler := ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(config, nil)))
-	return &R{
-		Path:    ghr.Path,
-		Methods: ghr.Methods,
-		Handler: handler,
-	}, nil
-
+	ghr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(config, nil)))
+	return &ghr.Route, nil
 }
 
 type GithubCallbackRoute struct {
@@ -64,21 +60,17 @@ type GithubCallbackRoute struct {
 	SessionService s.Service     `service:"sessionService"`
 }
 
-func (ghr *GithubCallbackRoute) NewHandler() (*R, error) {
+func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 	config := &oauth2.Config{
-		ClientID:     ghr.ClientID,
-		ClientSecret: ghr.ClientSecret,
-		RedirectURL:  ghr.RedirectURL,
+		ClientID:     gcr.ClientID,
+		ClientSecret: gcr.ClientSecret,
+		RedirectURL:  gcr.RedirectURL,
 		Endpoint:     githubOAuth2.Endpoint,
 	}
 	stateConfig := gologin.DebugOnlyCookieConfig
-	handler := ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, ghr.defaultLoginHandler(), nil)))
+	gcr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, gcr.defaultLoginHandler(), nil)))
 
-	return &R{
-		Path:    ghr.Path,
-		Methods: ghr.Methods,
-		Handler: handler,
-	}, nil
+	return &gcr.Route, nil
 }
 
 func issueSession() ctxh.ContextHandler {
@@ -113,20 +105,20 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 		if err != nil {
 			// Failed to Authenticate
 			w.WriteHeader(http.StatusUnauthorized)
-			ErrorHandler(w, r)
+			errors.ErrorHandler(w, r)
 			return
 		}
 
 		token, err := gcr.SessionService.NewSession(*githubUser.Email)
 		if err != nil {
 			w.WriteHeader(500)
-			ErrorHandler(w, r)
+			errors.ErrorHandler(w, r)
 			return
 		}
 		err = json.NewEncoder(w).Encode(token)
 		if err != nil {
 			w.WriteHeader(500)
-			ErrorHandler(w, r)
+			errors.ErrorHandler(w, r)
 			return
 		}
 		// http.Redirect(w, r, "/profile", http.StatusFound)

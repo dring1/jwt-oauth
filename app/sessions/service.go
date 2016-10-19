@@ -2,7 +2,7 @@ package sessions
 
 import (
 	"github.com/dring1/jwt-oauth/cache"
-	"github.com/dring1/jwt-oauth/jwt"
+	"github.com/dring1/jwt-oauth/token"
 )
 
 type Service interface {
@@ -12,7 +12,7 @@ type Service interface {
 
 type Session struct {
 	Cache        *cache.Service
-	TokenService jwt.Service
+	TokenService token.Service
 }
 
 type Token struct {
@@ -20,7 +20,7 @@ type Token struct {
 	UserEmail string `json:"email"`
 }
 
-func NewService(t jwt.Service, c *cache.Service) (Service, error) {
+func NewService(t token.Service, c *cache.Service) (Service, error) {
 	return &Session{
 		Cache:        c,
 		TokenService: t,
