@@ -42,7 +42,6 @@ func (t *TokenValidatorMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	token := tokenHeader[1]
 	ok, err := t.TokenService.Validate(token)
 	if !ok || err != nil {
-		fmt.Println(err)
 		w.WriteHeader(401)
 		w.Write([]byte(errors.InvalidToken))
 		return

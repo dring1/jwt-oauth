@@ -6,6 +6,7 @@ import (
 
 
 	_jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dring1/jwt-oauth/lib/errors"
 )
 
 type TokenService struct {
@@ -53,11 +54,6 @@ func (backend *TokenService) NewToken(userID string) (string, error) {
 			Subject:   sub,
 		},
 	}
-		// claims := _jwt.StandardClaims{
-		// 	ExpiresAt: exp,
-		// 	Issuer:    iss,
-		// 	Subject:   sub,
-		// }
 	token := _jwt.NewWithClaims(_jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(backend.privateKey)
 	if err != nil {
@@ -77,21 +73,22 @@ func (backend *TokenService) NewToken(userID string) (string, error) {
 
 func (ts *TokenService) Validate(tokenString string) (bool, error) {
 	token, err := _jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *_jwt.Token) (interface{}, error) {
-		// if _, ok := token.Method.(*_jwt.SigningMethodHMAC); !ok {
-		// 	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		// }
+		if _, ok := token.Method.(*_jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf(errors.InvalidToken)
+		}
 		// fmt.Println(len(strings.Split(tokenString, ".")))
 		return []byte(ts.privateKey), nil
 	})
-	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-        fmt.Printf("hi %v %v\n", claims.Email, claims.StandardClaims.ExpiresAt)
-    } else {
-        fmt.Println(err)
-    }
-	if err != nil || !token.Valid {
-		return false, err
-	}
-	return token.Valid, nil
+	// if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+    //     fmt.Printf("hi %+v %v\n", claims, claims.StandardClaims.ExpiresAt)
+    // } else {
+    //     fmt.Println(err)
+    // }
+	// if err != nil || !token.Valid {
+	// 	return false, err
+	// }
+	fmt.Println(token.Method.(*_jwt.SigningMethodHMAC), token.Header)
+	return token.Valid, err
 }
 func (backend *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 

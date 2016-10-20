@@ -28,4 +28,5 @@ _scriptpack_staging/
 otto-data/
 test-output
 jwt-oauth
+debug
 .vscode
