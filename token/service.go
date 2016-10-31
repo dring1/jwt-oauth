@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
-
 	_jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/lib/errors"
 )
 
 type TokenService struct {
+	cache                 cache.Service
 	privateKey, PublicKey []byte
 	TokenTTL              int
 	ExpireOffset          int
@@ -23,6 +24,7 @@ type Service interface {
 	NewToken(string) (string, error)
 	TimeToExpire(TimeStamp) TimeStamp
 	Validate(string) (bool, error)
+	InvalidateToken(string) error
 }
 
 type CustomClaims struct {
@@ -43,7 +45,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 }
 
 func (backend *TokenService) NewToken(userID string) (string, error) {
-	exp := time.Now().Add(time.Hour).Unix()
+	exp := time.Now().Add(5 * time.Minute).Unix()
 	iss := backend.TokenISS
 	sub := backend.TokenSub
 	claims := CustomClaims{
@@ -80,10 +82,10 @@ func (ts *TokenService) Validate(tokenString string) (bool, error) {
 		return []byte(ts.privateKey), nil
 	})
 	// if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-    //     fmt.Printf("hi %+v %v\n", claims, claims.StandardClaims.ExpiresAt)
-    // } else {
-    //     fmt.Println(err)
-    // }
+	//     fmt.Printf("hi %+v %v\n", claims, claims.StandardClaims.ExpiresAt)
+	// } else {
+	//     fmt.Println(err)
+	// }
 	// if err != nil || !token.Valid {
 	// 	return false, err
 	// }
@@ -97,4 +99,19 @@ func (backend *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 		return TimeStamp(int(remainder.Seconds()) + backend.ExpireOffset)
 	}
 	return 0
+}
+
+func (t *TokenService) parseToken(tokenString string) (*_jwt.Token, error) {
+
+	return _jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *_jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*_jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf(errors.InvalidToken)
+		}
+		// fmt.Println(len(strings.Split(tokenString, ".")))
+		return []byte(t.privateKey), nil
+	})
+}
+
+func (t *TokenService) InvalidateToken(token string) error {
+	return nil
 }
