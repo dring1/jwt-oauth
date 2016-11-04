@@ -1,6 +1,6 @@
 package cache
 
-import "gopkg.in/redis.v3"
+import "gopkg.in/redis.v5"
 
 type Service struct {
 	*redis.Client

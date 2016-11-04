@@ -20,6 +20,11 @@ type Route struct {
 	Handler     http.Handler
 }
 
+const (
+	Get = "Get"
+	Post = "POST"
+)
+
 // type R struct {
 // 	Path    string
 // 	Methods []string
@@ -37,12 +42,13 @@ type Router struct {
 func New(gitHubClientID, gitHubClientSecret, redirectUrl string, services map[string]interface{}, middlewares map[string]middleware.Middleware) *Router {
 	router := Router{mux.NewRouter()}
 	routes := []RouteHandler{
-		&GithubLoginRoute{Route: Route{Path: "/github/login", Methods: []string{"GET"}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
-		&GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{"GET"}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
-		&UserProfileRoute{Route: Route{Path: "/profile", Methods: []string{"GET"}}},
-		&HomeRoute{Route: Route{Path: "/", Methods: []string{"GET"}}, StaticFilePath: "./static"},
-		&HelloRoute{Route: Route{Path: "/hello", Methods: []string{"GET"}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
-		&TestRoute{Route: Route{Path: "/test", Methods: []string{"GET"}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
+		&GithubLoginRoute{Route: Route{Path: "/github/login", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
+		&GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
+		&UserProfileRoute{Route: Route{Path: "/profile", Methods: []string{Get}}},
+		&HomeRoute{Route: Route{Path: "/", Methods: []string{Get}}, StaticFilePath: "./static"},
+		&HelloRoute{Route: Route{Path: "/hello", Methods: []string{Get}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
+		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
+		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Post}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
 	}
 	// Inject services into the routes | Tags or Reflection interface type impl
 	// for _, r := range routes {
