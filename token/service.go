@@ -22,6 +22,7 @@ type TimeStamp int64
 
 type Service interface {
 	NewToken(string) (string, error)
+	RefreshToken(*Token)(string, error)
 	TimeToExpire(TimeStamp) TimeStamp
 	Validate(string) (bool, error)
 	Revoke(*Token) error
@@ -47,10 +48,10 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 
 }
 
-func (backend *TokenService) NewToken(userID string) (string, error) {
+func (t *TokenService) NewToken(userID string) (string, error) {
 	exp := time.Now().Add(5 * time.Minute).Unix()
-	iss := backend.TokenISS
-	sub := backend.TokenSub
+	iss := t.TokenISS
+	sub := t.TokenSub
 	claims := CustomClaims{
 		userID,
 		_jwt.StandardClaims{
@@ -60,7 +61,7 @@ func (backend *TokenService) NewToken(userID string) (string, error) {
 		},
 	}
 	token := _jwt.NewWithClaims(_jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(backend.privateKey)
+	tokenString, err := token.SignedString(t.privateKey)
 	if err != nil {
 		return "", err
 	}
@@ -93,10 +94,10 @@ func (ts *TokenService) Validate(tokenString string) (bool, error) {
 	fmt.Println(token.Method.(*_jwt.SigningMethodHMAC), token.Header)
 	return token.Valid, err
 }
-func (backend *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
+func (t *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 	tm := time.Unix(int64(timestamp), 0)
 	if remainder := tm.Sub(time.Now()); remainder > 0 {
-		return TimeStamp(int(remainder.Seconds()) + backend.ExpireOffset)
+		return TimeStamp(int(remainder.Seconds()) + t.ExpireOffset)
 	}
 	return 0
 }
@@ -118,4 +119,17 @@ func (t *TokenService) Revoke(token *Token) error {
 
 func (t *TokenService) IsRevoked(token *Token) (bool, error){
 	return t.cache.Exists(token.Raw).Result()
+}
+
+func (t *TokenService) RefreshToken(token *Token) (string, error){
+	// revoke token 
+	err := t.Revoke(token)
+	if err != nil {
+		return "", err
+	}
+	claims, ok := token.Claims.(*CustomClaims)
+	if !ok {
+		return "", fmt.Errorf(errors.InvalidToken)
+	}
+	return t.NewToken(claims.Email)
 }
