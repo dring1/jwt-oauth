@@ -15,9 +15,11 @@ import (
 	s "github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/lib/errors"
-
+	goGithub "github.com/google/go-github/github"
+	oauth2Login "github.com/dghubble/gologin/oauth2"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
+	"fmt"
 )
 
 const (
@@ -43,6 +45,7 @@ func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 		ClientSecret: ghr.ClientSecret,
 		RedirectURL:  ghr.RedirectURL,
 		Endpoint:     githubOAuth2.Endpoint,
+		Scopes: []string{"user:email"},
 	}
 
 	stateConfig := gologin.DebugOnlyCookieConfig
@@ -66,6 +69,7 @@ func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 		ClientSecret: gcr.ClientSecret,
 		RedirectURL:  gcr.RedirectURL,
 		Endpoint:     githubOAuth2.Endpoint,
+		Scopes: []string{"user:email"},
 	}
 	stateConfig := gologin.DebugOnlyCookieConfig
 	gcr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, gcr.defaultLoginHandler(), nil)))
@@ -76,6 +80,7 @@ func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 func issueSession() ctxh.ContextHandler {
 	fn := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
 		githubUser, err := github.UserFromContext(ctx)
+		fmt.Println(req.Header)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -94,6 +99,9 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		log.Println("retrieving github user from context")
 		githubUser, err := github.UserFromContext(ctx)
+		t, err := oauth2Login.TokenFromContext(ctx)
+		validateGithubUser(t.AccessToken, githubUser.Email)
+		// fmt.Println(t.)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte("Error retrieving github user"))
@@ -126,4 +134,25 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 	}
 
 	return ctxh.ContextHandlerFunc(handler)
+}
+
+func validateGithubUser(token string, expectedEmail *string){
+  ts := oauth2.StaticTokenSource(
+    &oauth2.Token{AccessToken: token},
+  )
+  tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+  client := goGithub.NewClient(tc)
+
+  // list all repositories for the authenticated user
+  emails, _, err := client.Users.ListEmails(nil)
+  if err != nil {
+	  fmt.Println(err)
+  }
+
+  for _, email := range emails {
+	 if *email.Email == *expectedEmail{
+		 fmt.Println("GREAT SUCCESS")
+	 }
+  }
 }

@@ -21,7 +21,7 @@ type Route struct {
 }
 
 const (
-	Get = "Get"
+	Get  = "Get"
 	Post = "POST"
 )
 

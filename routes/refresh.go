@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"net/http"
-	"github.com/dring1/jwt-oauth/token"
 	"github.com/dring1/jwt-oauth/lib/errors"
+	"github.com/dring1/jwt-oauth/token"
+	"net/http"
 )
 
 // given a valid jwt
@@ -17,18 +17,18 @@ type RefreshTokenRoute struct {
 const Token = "Token"
 
 func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
-	fn := func(w http.ResponseWriter, r *http.Request){
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		// Check context for token
 		iToken := r.Context().Value(Token)
 		tok, ok := (iToken).(token.Token)
 		if !ok {
 			w.WriteHeader(500)
 			errors.ErrorHandler(w, r)
-			return 
+			return
 		}
 		// Respond with new token with same claims and all
 		tokenString, err := rt.TokenService.RefreshToken(&tok)
-		if err != nil{ 
+		if err != nil {
 			// something happened.
 		}
 		w.WriteHeader(200)
@@ -36,4 +36,4 @@ func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
 	}
 	rt.Handler = http.HandlerFunc(fn)
 	return &rt.Route, nil
-} 
+}

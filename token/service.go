@@ -22,7 +22,7 @@ type TimeStamp int64
 
 type Service interface {
 	NewToken(string) (string, error)
-	RefreshToken(*Token)(string, error)
+	RefreshToken(*Token) (string, error)
 	TimeToExpire(TimeStamp) TimeStamp
 	Validate(string) (bool, error)
 	Revoke(*Token) error
@@ -80,7 +80,7 @@ func (t *TokenService) NewToken(userID string) (string, error) {
 func (ts *TokenService) Validate(tokenString string) (bool, error) {
 	token, err := ts.parseToken(tokenString)
 	revoked, err := ts.IsRevoked(token)
-	if revoked || err != nil{
+	if revoked || err != nil {
 		return false, err
 	}
 	// if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
@@ -117,12 +117,12 @@ func (t *TokenService) Revoke(token *Token) error {
 	return t.cache.Set(token.Raw, 0, time.Duration(t.TokenTTL)).Err()
 }
 
-func (t *TokenService) IsRevoked(token *Token) (bool, error){
+func (t *TokenService) IsRevoked(token *Token) (bool, error) {
 	return t.cache.Exists(token.Raw).Result()
 }
 
-func (t *TokenService) RefreshToken(token *Token) (string, error){
-	// revoke token 
+func (t *TokenService) RefreshToken(token *Token) (string, error) {
+	// revoke token
 	err := t.Revoke(token)
 	if err != nil {
 		return "", err
