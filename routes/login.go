@@ -11,15 +11,16 @@ import (
 	"github.com/dghubble/gologin"
 	"github.com/dghubble/gologin/github"
 
+	"fmt"
+
+	oauth2Login "github.com/dghubble/gologin/oauth2"
 	"github.com/dghubble/sessions"
 	s "github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/lib/errors"
-	goGithub "github.com/google/go-github/github"
-	oauth2Login "github.com/dghubble/gologin/oauth2"
+	githubClient "github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
-	"fmt"
 )
 
 const (
@@ -45,7 +46,7 @@ func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 		ClientSecret: ghr.ClientSecret,
 		RedirectURL:  ghr.RedirectURL,
 		Endpoint:     githubOAuth2.Endpoint,
-		Scopes: []string{"user:email"},
+		Scopes:       []string{"user:email"},
 	}
 
 	stateConfig := gologin.DebugOnlyCookieConfig
@@ -69,29 +70,15 @@ func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 		ClientSecret: gcr.ClientSecret,
 		RedirectURL:  gcr.RedirectURL,
 		Endpoint:     githubOAuth2.Endpoint,
-		Scopes: []string{"user:email"},
+		Scopes:       []string{"user:email"},
 	}
-	stateConfig := gologin.DebugOnlyCookieConfig
-	gcr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, gcr.defaultLoginHandler(), nil)))
 
+	if gcr.Handler == nil {
+		stateConfig := gologin.DebugOnlyCookieConfig
+		gcr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, gcr.defaultLoginHandler(), nil)))
+
+	}
 	return &gcr.Route, nil
-}
-
-func issueSession() ctxh.ContextHandler {
-	fn := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
-		githubUser, err := github.UserFromContext(ctx)
-		fmt.Println(req.Header)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		// 2. Implement a success handler to issue some form of session
-		session := sessionStore.New(sessionName)
-		session.Values[sessionUserKey] = *githubUser.ID
-		session.Save(w)
-		http.Redirect(w, req, "/profile", http.StatusFound)
-	}
-	return ctxh.ContextHandlerFunc(fn)
 }
 
 func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
@@ -129,30 +116,28 @@ func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
 			errors.ErrorHandler(w, r)
 			return
 		}
-		// http.Redirect(w, r, "/profile", http.StatusFound)
-
 	}
 
 	return ctxh.ContextHandlerFunc(handler)
 }
 
-func validateGithubUser(token string, expectedEmail *string){
-  ts := oauth2.StaticTokenSource(
-    &oauth2.Token{AccessToken: token},
-  )
-  tc := oauth2.NewClient(oauth2.NoContext, ts)
+func validateGithubUser(token string, expectedEmail *string) {
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
-  client := goGithub.NewClient(tc)
+	client := githubClient.NewClient(tc)
 
-  // list all repositories for the authenticated user
-  emails, _, err := client.Users.ListEmails(nil)
-  if err != nil {
-	  fmt.Println(err)
-  }
+	// list all repositories for the authenticated user
+	emails, _, err := client.Users.ListEmails(nil)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-  for _, email := range emails {
-	 if *email.Email == *expectedEmail{
-		 fmt.Println("GREAT SUCCESS")
-	 }
-  }
+	for _, email := range emails {
+		if *email.Email == *expectedEmail {
+			fmt.Println("GREAT SUCCESS")
+		}
+	}
 }

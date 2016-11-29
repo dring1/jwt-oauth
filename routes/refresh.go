@@ -35,5 +35,6 @@ func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
 		w.Write([]byte(tokenString))
 	}
 	rt.Handler = http.HandlerFunc(fn)
+
 	return &rt.Route, nil
 }

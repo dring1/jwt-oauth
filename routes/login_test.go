@@ -3,9 +3,10 @@ package routes
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMockServer(t *testing.T) {
@@ -23,5 +24,19 @@ func TestMockServer(t *testing.T) {
 }
 
 func TestLoginRoute(t *testing.T) {
+	client, mux, server := MockServer()
+	defer server.Close()
 
+	loginRoute := &GithubLoginRoute{
+		Route: Route{
+			Path:    "/github/login",
+			Methods: []string{Get},
+		},
+		ClientID:     "TESTID",
+		ClientSecret: "TESTSECRET",
+	}
+	r, err := loginRoute.CompileRoute()
+
+	mux.Handle(r.Path, r.Handler)
+	// &GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret}
 }
