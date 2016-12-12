@@ -5,28 +5,14 @@ import (
 
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMockServer(t *testing.T) {
+func LoginServer() (*http.Client, *http.ServeMux, *httptest.Server) {
+	success := "success"
 	client, mux, server := MockServer()
-	defer server.Close()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		w.Write([]byte("hello!"))
-	})
-	mux.Handle("/test", handler)
-	resp, err := client.Get(server.URL + "/test")
-	assert.Nil(t, err)
-	bs, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal(t, "hello!", string(bs))
-}
-
-func TestLoginRoute(t *testing.T) {
-	client, mux, server := MockServer()
-	defer server.Close()
-
 	loginRoute := &GithubLoginRoute{
 		Route: Route{
 			Path:    "/github/login",
@@ -34,9 +20,41 @@ func TestLoginRoute(t *testing.T) {
 		},
 		ClientID:     "TESTID",
 		ClientSecret: "TESTSECRET",
+		LoginHandler: nil,
 	}
-	r, err := loginRoute.CompileRoute()
+	r, _ := loginRoute.CompileRoute()
+	r.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/github/callback", 301)
+	})
+	callBackRoute := &GithubLoginRoute{
+		Route: Route{
+			Path:    "/github/callback",
+			Methods: []string{Get},
+		},
+		ClientID:     "TESTID",
+		ClientSecret: "TESTSECRET",
+		LoginHandler: nil,
+	}
+	cr, _ := callBackRoute.CompileRoute()
+	cr.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(201)
+		w.Write([]byte(success))
+	})
+	mux.Handle(callBackRoute.Path, callBackRoute.Handler)
+	mux.Handle(loginRoute.Path, loginRoute.Handler)
+	return client, mux, server
+}
+func TestLoginRoute(t *testing.T) {
+	client, _, server := LoginServer()
+	defer server.Close()
 
-	mux.Handle(r.Path, r.Handler)
-	// &GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret}
+	resp, err := client.Get(server.URL + "/github/callback")
+	assert.Nil(t, err)
+	b, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(t, "success", string(b))
+	assert.Equal(t, 201, resp.StatusCode)
+}
+
+func TestLogin(t *testing.T) {
+
 }
