@@ -44,11 +44,12 @@ func LoginServer() (*http.Client, *http.ServeMux, *httptest.Server) {
 	mux.Handle(loginRoute.Path, loginRoute.Handler)
 	return client, mux, server
 }
+
 func TestLoginRoute(t *testing.T) {
 	client, _, server := LoginServer()
 	defer server.Close()
 
-	resp, err := client.Get(server.URL + "/github/callback")
+	resp, err := client.Get(server.URL + "/github/login")
 	assert.Nil(t, err)
 	b, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(t, "success", string(b))

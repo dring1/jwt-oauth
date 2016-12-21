@@ -10,7 +10,7 @@ import (
 )
 
 type TokenService struct {
-	cache                 cache.Service
+	cache                 *cache.Service
 	privateKey, PublicKey []byte
 	TokenTTL              int
 	ExpireOffset          int
@@ -36,8 +36,9 @@ type CustomClaims struct {
 
 type Token _jwt.Token
 
-func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string) (Service, error) {
+func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string, cache *cache.Service) (Service, error) {
 	return &TokenService{
+		cache:        cache,
 		privateKey:   privKey,
 		PublicKey:    publicKey,
 		TokenTTL:     tokenTTL,

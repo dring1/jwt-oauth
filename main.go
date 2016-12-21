@@ -8,13 +8,14 @@ import (
 	"github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/cache"
+	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/dring1/jwt-oauth/token"
 )
 
 func main() {
-	c, err := NewAppConfig()
+	c, err := config.New()
 	if err != nil {
 		log.Fatalln(err)
 	}

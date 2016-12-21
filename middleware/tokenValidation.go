@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,7 +27,6 @@ func NewTokenValidationMiddleware(tokenService token.Service) Middleware {
 func (t *TokenValidatorMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	header, ok := r.Header[AuthorizationHeader]
 	if !ok {
-
 		w.WriteHeader(401)
 		w.Write([]byte(errors.InvalidToken))
 		return
@@ -40,6 +40,7 @@ func (t *TokenValidatorMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	token := tokenHeader[1]
 	ok, err := t.TokenService.Validate(token)
+	log.Println(err)
 	if !ok || err != nil {
 		w.WriteHeader(401)
 		w.Write([]byte(errors.InvalidToken))

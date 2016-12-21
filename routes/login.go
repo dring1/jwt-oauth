@@ -31,13 +31,13 @@ var oauthStateString = "ThisIsASecret"
 
 type GithubLoginRoute struct {
 	Route
-	ClientID       string
-	ClientSecret   string
-	RedirectURL    string
-	UserService    users.Service
-	SessionService s.Service
-	LoginHandler   http.Handler
-	Config         *oauth2.Config
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	UserService  users.Service
+	//SessionService s.Service
+	LoginHandler http.Handler
+	Config       *oauth2.Config
 }
 
 func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
@@ -49,12 +49,6 @@ func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 		Scopes:       []string{"user:email"},
 	}
 
-	//stateConfig := gologin.DebugOnlyCookieConfig
-	//if ghr.LoginHandler != nil {
-	//    ghr.Handler = ghr.LoginHandler
-	//} else {
-	//    ghr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.LoginHandler(config, nil)))
-	//}
 	url := ghr.Config.AuthCodeURL(oauthStateString, oauth2.AccessTypeOnline)
 	ghr.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
@@ -82,11 +76,6 @@ func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 		Scopes:       []string{"user:email"},
 	}
 
-	//if gcr.Handler == nil {
-	//    stateConfig := gologin.DebugOnlyCookieConfig
-	//    gcr.Handler = ctxh.NewHandler(github.StateHandler(stateConfig, github.CallbackHandler(config, gcr.defaultLoginHandler(), nil)))
-
-	//}
 	gcr.Handler = http.HandlerFunc(gcr.handleGitHubCallback)
 	return &gcr.Route, nil
 }
@@ -179,6 +168,25 @@ func (gcr *GithubCallbackRoute) handleGitHubCallback(w http.ResponseWriter, r *h
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-	fmt.Printf("Logged in as GitHub user: %s\n", *user.Login)
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	err = gcr.UserService.Authenticate(*user.Email)
+	if err != nil {
+		// Failed to Authenticate
+		w.WriteHeader(http.StatusUnauthorized)
+		errors.ErrorHandler(w, r)
+		return
+	}
+
+	jwtToken, err := gcr.SessionService.NewSession(*user.Email)
+	if err != nil {
+		w.WriteHeader(500)
+		errors.ErrorHandler(w, r)
+		return
+	}
+	err = json.NewEncoder(w).Encode(jwtToken)
+	if err != nil {
+		w.WriteHeader(500)
+		errors.ErrorHandler(w, r)
+		return
+	}
+
 }

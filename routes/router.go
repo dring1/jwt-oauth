@@ -101,8 +101,6 @@ func (r *Router) injectServices(routes []RouteHandler, services map[string]inter
 			if !ok {
 				continue
 			}
-			service, ok := services[val]
-			log.Println("We are here", service, ok, val)
 			if service, ok := services[val]; ok {
 				val := reflect.ValueOf(r).Elem()
 				if val.Field(index).CanSet() {
