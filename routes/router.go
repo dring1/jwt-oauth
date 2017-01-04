@@ -23,7 +23,7 @@ const (
 	Post = "POST"
 )
 
-type RouteHandler interface {
+type RouteRaw interface {
 	CompileRoute() (*Route, error)
 }
 
@@ -48,7 +48,7 @@ func NewRouter(routes []*Route) (*Router, error) {
 }
 
 func NewRoutes(config *Config) ([]*Route, error) {
-	routes := []RouteHandler{
+	routes := []RouteRaw{
 		&GithubLoginRoute{
 			Route: Route{
 				Path:    "/github/login",
@@ -77,7 +77,7 @@ func NewRoutes(config *Config) ([]*Route, error) {
 	return r, nil
 }
 
-func TransformRoutes(routesRaw []RouteHandler) ([]*Route, error) {
+func TransformRoutes(routesRaw []RouteRaw) ([]*Route, error) {
 	routes := []*Route{}
 	for _, route := range routesRaw {
 		r, err := route.CompileRoute()
@@ -98,7 +98,7 @@ func (r *Router) Register(routes []*Route) error {
 	return nil
 }
 
-func InjectServices(routes []RouteHandler, svcs *services.Services) []RouteHandler {
+func InjectServices(routes []RouteRaw, svcs *services.Services) []RouteRaw {
 	sv := reflect.ValueOf(svcs).Elem()
 	for _, r := range routes {
 		s := reflect.TypeOf(r).Elem()
