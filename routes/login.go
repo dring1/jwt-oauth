@@ -35,7 +35,6 @@ type GithubLoginRoute struct {
 	ClientSecret string
 	RedirectURL  string
 	UserService  users.Service
-	//SessionService s.Service
 	LoginHandler http.Handler
 	Config       *oauth2.Config
 }
@@ -62,8 +61,8 @@ type GithubCallbackRoute struct {
 	ClientID       string
 	ClientSecret   string
 	RedirectURL    string
-	UserService    users.Service `service:"userService"`
-	SessionService s.Service     `service:"sessionService"`
+	UserService    users.Service `service:"UserService"`
+	SessionService s.Service     `service:"SessionService"`
 	Config         *oauth2.Config
 }
 

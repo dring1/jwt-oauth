@@ -121,7 +121,7 @@ func New() (*Cfg, error) {
 	}
 	jwtTTL := func(c *Cfg) error {
 		re, err := getEnvVal("JWT_TTL", func() (interface{}, error) {
-			return (int)(time.Hour.Hours()), nil
+			return (int)(time.Hour.Seconds()), nil
 		})
 		if err != nil {
 			return err

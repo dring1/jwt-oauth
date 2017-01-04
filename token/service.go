@@ -50,7 +50,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 }
 
 func (t *TokenService) NewToken(userID string) (string, error) {
-	exp := time.Now().Add(5 * time.Minute).Unix()
+	exp := time.Now().Add(time.Duration(t.TokenTTL) * time.Second).Unix()
 	iss := t.TokenISS
 	sub := t.TokenSub
 	claims := CustomClaims{
@@ -92,7 +92,6 @@ func (ts *TokenService) Validate(tokenString string) (bool, error) {
 	// if err != nil || !token.Valid {
 	// 	return false, err
 	// }
-	fmt.Println(token.Method.(*_jwt.SigningMethodHMAC), token.Header)
 	return token.Valid, err
 }
 func (t *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {

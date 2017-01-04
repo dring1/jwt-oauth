@@ -5,13 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dring1/jwt-oauth/app/sessions"
-	"github.com/dring1/jwt-oauth/app/users"
-	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
-	"github.com/dring1/jwt-oauth/token"
+	"github.com/dring1/jwt-oauth/services"
 )
 
 func main() {
@@ -19,26 +16,28 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// Init services
-	// db, _ := database.NewService()
-	ch, _ := cache.NewService(c.RedisEndpoint)
-	tokenService, _ := token.NewService(c.PrivateKey, c.PublicKey, c.JwtTTL, c.JWTExpirationDelta, c.JwtIss, c.JwtSub)
-	us, _ := users.NewService()
-	ss, _ := sessions.NewService(tokenService, ch)
-	// Init controllers
-	// ctrls := controllers.New(db, ch, jwtService, us, ss)
-	routeServices := map[string]interface{}{
-		"userService":    us,
-		"sessionService": ss,
+	svcs, err := services.New(c)
+	if err != nil {
+		log.Fatalln(err)
 	}
-
-	tokenValidationMiddlware := middleware.NewTokenValidationMiddleware(tokenService)
-	middlewares := map[string]middleware.Middleware{
-		"VALIDATION": tokenValidationMiddlware,
+	middlewares, err := middleware.New(svcs)
+	if err != nil {
+		log.Fatalln(err)
 	}
 	// Init router
-	router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, routeServices, middlewares)
-
+	rs, err := routes.NewRoutes(&routes.Config{
+		Services:     svcs,
+		Middlewares:  middlewares,
+		ClientID:     c.GitHubClientID,
+		ClientSecret: c.GitHubClientSecret,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	router, err := routes.NewRouter(rs)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	// Apply middlewares
 	globalMiddlewares := []middleware.Middleware{
 		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
