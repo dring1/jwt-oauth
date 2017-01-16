@@ -1,3 +1,6 @@
 package contextkeys
 
-const Error = "ERROR"
+const (
+	Error = "ERROR"
+	Auth  = "Authorization"
+)

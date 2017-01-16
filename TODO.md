@@ -1,0 +1,4 @@
+- Logging Service
+- Middlewares take config
+- JSON Response handler
+- context generator middleware at root

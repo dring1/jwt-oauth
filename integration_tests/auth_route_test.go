@@ -72,5 +72,16 @@ func TestProtectedRouteWithExpiredToken(t *testing.T) {
 }
 
 func TestRefreshTokenRoute(t *testing.T) {
-	t.Skip()
+	authResp := AuthResp{}
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/token/refresh", app.Server.URL), nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", app.Token))
+	resp, err := app.Client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, 401, resp.StatusCode)
+	err = json.NewDecoder(resp.Body).Decode(&authResp)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, authResp.Token)
+	assert.Equal(t, "user@acme.com", authResp.Email)
+	app.Token = authResp.Token
 }

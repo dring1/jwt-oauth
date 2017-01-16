@@ -67,7 +67,7 @@ func NewRoutes(config *Config) ([]*Route, error) {
 		},
 		&HomeRoute{Route: Route{Path: "/", Methods: []string{Get}}, StaticFilePath: "./static"},
 		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
-		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Post}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
+		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 	}
 	hydratedRoutes := InjectServices(routes, config.Services)
 	r, err := TransformRoutes(hydratedRoutes)

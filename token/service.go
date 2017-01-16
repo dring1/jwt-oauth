@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	_jwt "github.com/dgrijalva/jwt-go"
@@ -24,7 +25,7 @@ type Service interface {
 	NewToken(string) (string, error)
 	RefreshToken(*Token) (string, error)
 	TimeToExpire(TimeStamp) TimeStamp
-	Validate(string) (bool, error)
+	Validate(string) (*Token, bool, error)
 	Revoke(*Token) error
 	IsRevoked(*Token) (bool, error)
 }
@@ -78,21 +79,16 @@ func (t *TokenService) NewToken(userID string) (string, error) {
 // 	return nil
 // }
 
-func (ts *TokenService) Validate(tokenString string) (bool, error) {
+func (ts *TokenService) Validate(tokenString string) (*Token, bool, error) {
 	token, err := ts.parseToken(tokenString)
+	if err != nil {
+		return nil, false, err
+	}
 	revoked, err := ts.IsRevoked(token)
 	if revoked || err != nil {
-		return false, err
+		return nil, false, err
 	}
-	// if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-	// 	fmt.Printf("hi %+v %v\n", claims, claims.StandardClaims.ExpiresAt)
-	// } else {
-	// 	fmt.Println(err)
-	// }
-	// if err != nil || !token.Valid {
-	// 	return false, err
-	// }
-	return token.Valid, err
+	return token, token.Valid, nil
 }
 func (t *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 	tm := time.Unix(int64(timestamp), 0)
@@ -114,7 +110,7 @@ func (t *TokenService) parseToken(tokenString string) (*Token, error) {
 
 func (t *TokenService) Revoke(token *Token) error {
 	// the duration of the token
-	return t.cache.Set(token.Raw, 0, time.Duration(t.TokenTTL)).Err()
+	return t.cache.Set(token.Raw, 0, time.Duration(t.TokenTTL)*time.Second).Err()
 }
 
 func (t *TokenService) IsRevoked(token *Token) (bool, error) {
@@ -125,6 +121,7 @@ func (t *TokenService) RefreshToken(token *Token) (string, error) {
 	// revoke token
 	err := t.Revoke(token)
 	if err != nil {
+		log.Println("Cache issues")
 		return "", err
 	}
 	claims, ok := token.Claims.(*CustomClaims)
