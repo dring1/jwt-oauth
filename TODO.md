@@ -2,3 +2,5 @@
 - Middlewares take config
 - JSON Response handler
 - context generator middleware at root
+- Refactor middleware setup and testing
+- route.Router in testing instead of http.Handler

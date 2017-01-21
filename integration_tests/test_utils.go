@@ -49,7 +49,7 @@ func (t *RewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	return t.Transport.RoundTrip(req)
 }
 
-func MockServer(mux *routes.Router) (*http.Client, *routes.Router, *httptest.Server) {
+func MockServer(mux http.Handler) (*http.Client, http.Handler, *httptest.Server) {
 	server := httptest.NewServer(mux)
 	transport := &RewriteTransport{&http.Transport{
 		Proxy: func(req *http.Request) (*url.URL, error) {
@@ -67,10 +67,6 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 		Services:    svcs,
 	})
 	m, err := routes.NewRouter(rs)
-	if err != nil {
-		log.Fatal(err)
-	}
-	client, mux, server := MockServer(m)
 
 	loginRoute := &routes.GithubLoginRoute{
 		Route: routes.Route{
@@ -109,13 +105,25 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 		}
 
 	})
-	mux.Handle(callBackRoute.Path, callBackRoute.Handler)
-	mux.Handle(loginRoute.Path, loginRoute.Handler)
+	m.Handle(callBackRoute.Path, callBackRoute.Handler)
+	m.Handle(loginRoute.Path, loginRoute.Handler)
+	globalMiddlewares := []middleware.Middleware{
+		middleware.JsonResponseHandler,
+		middleware.NewApacheLoggingHandler(config.LoggingEndpoint),
+		middleware.AddUUID,
+		middleware.ContextCreate,
+	}
+	globalMiddlewares = append(globalMiddlewares, middleware.DefaultMiddleWare()...)
+	handler := middleware.Handlers(m, globalMiddlewares...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client, _, server := MockServer(handler)
 	return &TestApp{
-		Config:      config,
-		Client:      client,
-		Server:      server,
-		Router:      mux,
+		Config: config,
+		Client: client,
+		Server: server,
+		//Router:      mux,
 		Services:    svcs,
 		Middlewares: middlewares,
 	}

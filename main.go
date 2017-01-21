@@ -40,8 +40,10 @@ func main() {
 	}
 	// Apply middlewares
 	globalMiddlewares := []middleware.Middleware{
-		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
 		middleware.JsonResponseHandler,
+		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
+		middleware.AddUUID,
+		middleware.ContextCreate,
 	}
 	globalMiddlewares = append(globalMiddlewares, middleware.DefaultMiddleWare()...)
 

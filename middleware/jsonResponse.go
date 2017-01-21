@@ -14,6 +14,5 @@ func JsonResponseHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func(w http.ResponseWrite, r *http.Request){
-l
+func Marshal(w http.ResponseWriter, r *http.Request) {
 }

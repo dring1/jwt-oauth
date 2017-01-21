@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dring1/jwt-oauth/lib/contextkeys"
 )
 
 const (
-	ApacheFormatPattern = "[%s] -> %s %s ->\"%s %d %d\" %f\n"
+	ApacheFormatPattern = "[%s] -> %s -> %s %s ->\"%s %d %d\" %f\n"
 )
 
 type ApacheLogRecord struct {
@@ -22,12 +24,13 @@ type ApacheLogRecord struct {
 	responseBytes         int64
 	elapsedTime           time.Duration
 	agent                 string
+	id                    string
 }
 
 func (r *ApacheLogRecord) Log(out io.Writer) {
 	timeFormatted := r.time.Format("02/Jan/2006 03:04:05")
 	requestLine := fmt.Sprintf("%s %s %s", r.method, r.uri, r.protocol)
-	fmt.Fprintf(out, ApacheFormatPattern, timeFormatted, r.ip, r.agent, requestLine, r.status, r.responseBytes,
+	fmt.Fprintf(out, ApacheFormatPattern, timeFormatted, r.id, r.ip, r.agent, requestLine, r.status, r.responseBytes,
 		r.elapsedTime.Seconds())
 }
 
@@ -62,6 +65,12 @@ func (h *ApacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 		clientIP = clientIP[:colon]
 	}
 
+	val := r.Context().Value(contextkeys.ReqId)
+	reqId, ok := val.(string)
+	if !ok {
+		reqId = "INVALID ID"
+	}
+
 	record := &ApacheLogRecord{
 		ResponseWriter: rw,
 		ip:             clientIP,
@@ -72,6 +81,7 @@ func (h *ApacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 		status:         http.StatusOK,
 		elapsedTime:    time.Duration(0),
 		agent:          r.UserAgent(),
+		id:             reqId,
 	}
 
 	startTime := time.Now()
