@@ -38,15 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// Apply middlewares
-	globalMiddlewares := []middleware.Middleware{
-		middleware.JsonResponseHandler,
-		middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
-		middleware.AddUUID,
-		middleware.ContextCreate,
-	}
-	globalMiddlewares = append(globalMiddlewares, middleware.DefaultMiddleWare()...)
-
+	globalMiddlewares := middleware.DefaultMiddleWare(c)
 	log.Printf("Serving on port :%d", c.Port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, globalMiddlewares...))
 	log.Fatal(err)

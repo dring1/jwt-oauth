@@ -16,14 +16,6 @@ import (
 type RewriteTransport struct {
 	Transport http.RoundTripper
 }
-
-//type TestServices struct {
-//    cacheService   *cache.Service
-//    userService    users.Service
-//    tokenService   token.Service
-//    sessionService sessions.Service
-//}
-
 type AuthResp struct {
 	Token string `json:"Value"`
 	Email string `json:"Email"`
@@ -66,8 +58,27 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 		Middlewares: middlewares,
 		Services:    svcs,
 	})
+	authRoutes := mockAuthRoutes(svcs)
+	rs = append(rs, authRoutes...)
 	m, err := routes.NewRouter(rs)
+	// TODO: move to default middlewares ?
+	defaultMiddlewares := middleware.DefaultMiddleWare(config)
+	handler := middleware.Handlers(m, defaultMiddlewares...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client, _, server := MockServer(handler)
+	return &TestApp{
+		Config: config,
+		Client: client,
+		Server: server,
+		//Router:      mux,
+		Services:    svcs,
+		Middlewares: middlewares,
+	}
+}
 
+func mockAuthRoutes(svcs *services.Services) []*routes.Route {
 	loginRoute := &routes.GithubLoginRoute{
 		Route: routes.Route{
 			Path:    "/mock/github/login",
@@ -105,44 +116,6 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 		}
 
 	})
-	m.Handle(callBackRoute.Path, callBackRoute.Handler)
-	m.Handle(loginRoute.Path, loginRoute.Handler)
-	globalMiddlewares := []middleware.Middleware{
-		middleware.JsonResponseHandler,
-		middleware.NewApacheLoggingHandler(config.LoggingEndpoint),
-		middleware.AddUUID,
-		middleware.ContextCreate,
-	}
-	globalMiddlewares = append(globalMiddlewares, middleware.DefaultMiddleWare()...)
-	handler := middleware.Handlers(m, globalMiddlewares...)
-	if err != nil {
-		log.Fatal(err)
-	}
-	client, _, server := MockServer(handler)
-	return &TestApp{
-		Config: config,
-		Client: client,
-		Server: server,
-		//Router:      mux,
-		Services:    svcs,
-		Middlewares: middlewares,
-	}
-	//router := routes.New(c.GitHubClientID, c.GitHubClientSecret, c.OauthRedirectURL, routeServices, middlewares)
 
-	// Apply middlewares
-	//globalMiddlewares := []middleware.Middleware{
-	//    middleware.NewApacheLoggingHandler(c.LoggingEndpoint),
-	//}
-	//globalMiddlewares = append(globalMiddlewares, middleware.DefaultMiddleWare()...)
-
-	//log.Printf("Serving on port :%d", c.Port)
-	//err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, globalMiddlewares...))
+	return []*routes.Route{r, cr}
 }
-
-//func MockMiddlewares(services map[string]interface{}) map[string]middleware.Middleware {
-//    tokenValidationMiddleware := middleware.NewTokenValidationMiddleware(services["tokenService"])
-//    middlewares := map[string]middleware.Middleware{
-//        "VALIDATION": tokenValidationMiddleware,
-//    }
-//    return middlewares
-//}

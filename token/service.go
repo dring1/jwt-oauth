@@ -2,7 +2,6 @@ package token
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	_jwt "github.com/dgrijalva/jwt-go"
@@ -13,7 +12,7 @@ import (
 type TokenService struct {
 	cache                 *cache.Service
 	privateKey, PublicKey []byte
-	TokenTTL              int
+	TokenTTL              time.Duration
 	ExpireOffset          int
 	TokenISS              string
 	TokenSub              string
@@ -42,7 +41,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 		cache:        cache,
 		privateKey:   privKey,
 		PublicKey:    publicKey,
-		TokenTTL:     tokenTTL,
+		TokenTTL:     time.Duration(tokenTTL) * time.Second,
 		ExpireOffset: expireOffset,
 		TokenISS:     tokISS,
 		TokenSub:     tokSub,
@@ -51,7 +50,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 }
 
 func (t *TokenService) NewToken(userID string) (string, error) {
-	exp := time.Now().Add(time.Duration(t.TokenTTL) * time.Second).Unix()
+	exp := time.Now().Add(t.TokenTTL).Unix()
 	iss := t.TokenISS
 	sub := t.TokenSub
 	claims := CustomClaims{
@@ -110,7 +109,7 @@ func (t *TokenService) parseToken(tokenString string) (*Token, error) {
 
 func (t *TokenService) Revoke(token *Token) error {
 	// the duration of the token
-	return t.cache.Set(token.Raw, 0, time.Duration(t.TokenTTL)*time.Second).Err()
+	return t.cache.Set(token.Raw, 0, t.TokenTTL).Err()
 }
 
 func (t *TokenService) IsRevoked(token *Token) (bool, error) {
@@ -121,7 +120,6 @@ func (t *TokenService) RefreshToken(token *Token) (string, error) {
 	// revoke token
 	err := t.Revoke(token)
 	if err != nil {
-		log.Println("Cache issues")
 		return "", err
 	}
 	claims, ok := token.Claims.(*CustomClaims)

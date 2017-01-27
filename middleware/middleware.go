@@ -1,16 +1,12 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/dring1/jwt-oauth/config"
+)
 
 type Middleware func(http.Handler) http.Handler
-
-//func HandlerFuncs(handlers ...http.HandlerFunc) http.HandlerFunc {
-//    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//        for _, handler := range handlers {
-//            handler(w, r)
-//        }
-//    })
-//}
 
 func Handlers(handler http.Handler, middlewares ...Middleware) http.Handler {
 	for _, mdlware := range middlewares {
@@ -19,6 +15,14 @@ func Handlers(handler http.Handler, middlewares ...Middleware) http.Handler {
 	return handler
 }
 
-func DefaultMiddleWare() []Middleware {
-	return []Middleware{RecoverHandler}
+func DefaultMiddleWare(config *config.Cfg) []Middleware {
+	// order from last to first - LIFO
+	globalMiddlewares := []Middleware{
+		JsonResponseHandler,
+		NewApacheLoggingHandler(config.LoggingEndpoint),
+		AddUUID,
+		ContextCreate,
+		RecoverHandler,
+	}
+	return globalMiddlewares
 }
