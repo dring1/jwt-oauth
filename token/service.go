@@ -10,9 +10,9 @@ import (
 )
 
 type TokenService struct {
-	cache                 cache.Service
+	cache                 *cache.Service
 	privateKey, PublicKey []byte
-	TokenTTL              int
+	TokenTTL              time.Duration
 	ExpireOffset          int
 	TokenISS              string
 	TokenSub              string
@@ -24,7 +24,7 @@ type Service interface {
 	NewToken(string) (string, error)
 	RefreshToken(*Token) (string, error)
 	TimeToExpire(TimeStamp) TimeStamp
-	Validate(string) (bool, error)
+	Validate(string) (*Token, bool, error)
 	Revoke(*Token) error
 	IsRevoked(*Token) (bool, error)
 }
@@ -36,11 +36,12 @@ type CustomClaims struct {
 
 type Token _jwt.Token
 
-func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string) (Service, error) {
+func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string, cache *cache.Service) (Service, error) {
 	return &TokenService{
+		cache:        cache,
 		privateKey:   privKey,
 		PublicKey:    publicKey,
-		TokenTTL:     tokenTTL,
+		TokenTTL:     time.Duration(tokenTTL) * time.Second,
 		ExpireOffset: expireOffset,
 		TokenISS:     tokISS,
 		TokenSub:     tokSub,
@@ -49,7 +50,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 }
 
 func (t *TokenService) NewToken(userID string) (string, error) {
-	exp := time.Now().Add(5 * time.Minute).Unix()
+	exp := time.Now().Add(t.TokenTTL).Unix()
 	iss := t.TokenISS
 	sub := t.TokenSub
 	claims := CustomClaims{
@@ -77,22 +78,16 @@ func (t *TokenService) NewToken(userID string) (string, error) {
 // 	return nil
 // }
 
-func (ts *TokenService) Validate(tokenString string) (bool, error) {
+func (ts *TokenService) Validate(tokenString string) (*Token, bool, error) {
 	token, err := ts.parseToken(tokenString)
+	if err != nil {
+		return nil, false, err
+	}
 	revoked, err := ts.IsRevoked(token)
 	if revoked || err != nil {
-		return false, err
+		return nil, false, err
 	}
-	// if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-	// 	fmt.Printf("hi %+v %v\n", claims, claims.StandardClaims.ExpiresAt)
-	// } else {
-	// 	fmt.Println(err)
-	// }
-	// if err != nil || !token.Valid {
-	// 	return false, err
-	// }
-	fmt.Println(token.Method.(*_jwt.SigningMethodHMAC), token.Header)
-	return token.Valid, err
+	return token, token.Valid, nil
 }
 func (t *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 	tm := time.Unix(int64(timestamp), 0)
@@ -114,7 +109,7 @@ func (t *TokenService) parseToken(tokenString string) (*Token, error) {
 
 func (t *TokenService) Revoke(token *Token) error {
 	// the duration of the token
-	return t.cache.Set(token.Raw, 0, time.Duration(t.TokenTTL)).Err()
+	return t.cache.Set(token.Raw, 0, t.TokenTTL).Err()
 }
 
 func (t *TokenService) IsRevoked(token *Token) (bool, error) {

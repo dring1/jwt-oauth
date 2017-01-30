@@ -7,12 +7,10 @@ import (
 	"strings"
 
 	"github.com/dring1/jwt-oauth/middleware"
+	"github.com/dring1/jwt-oauth/services"
 	"github.com/gorilla/mux"
 )
 
-// type Route interface {
-// 	GenHttpHandlers() ([]*R, error)
-// }
 type Route struct {
 	Path        string
 	Methods     []string
@@ -21,17 +19,11 @@ type Route struct {
 }
 
 const (
-	Get  = "Get"
+	Get  = "GET"
 	Post = "POST"
 )
 
-// type R struct {
-// 	Path    string
-// 	Methods []string
-// 	Handler http.Handler
-// }
-
-type RouteHandler interface {
+type RouteRaw interface {
 	CompileRoute() (*Route, error)
 }
 
@@ -39,76 +31,87 @@ type Router struct {
 	*mux.Router
 }
 
-func New(gitHubClientID, gitHubClientSecret, redirectUrl string, services map[string]interface{}, middlewares map[string]middleware.Middleware) *Router {
-	router := Router{mux.NewRouter()}
-	routes := []RouteHandler{
-		&GithubLoginRoute{Route: Route{Path: "/github/login", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
-		&GithubCallbackRoute{Route: Route{Path: "/github/callback", Methods: []string{Get}}, ClientID: gitHubClientID, ClientSecret: gitHubClientSecret},
-		&UserProfileRoute{Route: Route{Path: "/profile", Methods: []string{Get}}},
-		&HomeRoute{Route: Route{Path: "/", Methods: []string{Get}}, StaticFilePath: "./static"},
-		&HelloRoute{Route: Route{Path: "/hello", Methods: []string{Get}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
-		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
-		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Post}, Middlewares: []middleware.Middleware{middlewares["VALIDATION"]}}},
-	}
-	// Inject services into the routes | Tags or Reflection interface type impl
-	// for _, r := range routes {
-	// 	s := reflect.TypeOf(r).Elem()
-	// 	for index := 0; index < s.NumField(); index++ {
-	// 		field := s.Field(index)
-	// 		if val, ok := field.Tag.Lookup("service"); ok && val != "" {
-	// 			for _, ctrl := range controllers {
-	// 				if reflect.TypeOf(ctrl).Elem().Name() == val {
-	// 					val := reflect.ValueOf(r).Elem()
-	// 					if val.Field(index).CanSet() {
-	// 						val.Field(index).Set(reflect.ValueOf(ctrl))
-	// 					}
-	// 					break
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-	routes = router.injectServices(routes, services)
-	router.Register(routes)
-	return &router
+type Config struct {
+	Services     *services.Services
+	Middlewares  middleware.MiddlewareMap
+	ClientID     string
+	ClientSecret string
 }
 
-func (r *Router) Register(routes []RouteHandler) error {
+func NewRouter(routes []*Route) (*Router, error) {
+	router := Router{mux.NewRouter()}
+	err := router.Register(routes)
+	if err != nil {
+		return nil, err
+	}
+	return &router, nil
+}
 
-	for _, route := range routes {
-		h, err := route.CompileRoute()
+func NewRoutes(config *Config) ([]*Route, error) {
+	routes := []RouteRaw{
+		&GithubLoginRoute{
+			Route: Route{
+				Path:    "/github/login",
+				Methods: []string{Get},
+			},
+			ClientID:     config.ClientID,
+			ClientSecret: config.ClientSecret,
+		},
+		&GithubCallbackRoute{
+			Route: Route{
+				Path:    "/github/callback",
+				Methods: []string{Get},
+			},
+			ClientID:     config.ClientID,
+			ClientSecret: config.ClientSecret,
+		},
+		&HomeRoute{Route: Route{Path: "/", Methods: []string{Get}}, StaticFilePath: "./static"},
+		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
+		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
+	}
+	hydratedRoutes := InjectServices(routes, config.Services)
+	r, err := TransformRoutes(hydratedRoutes)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
 
+func TransformRoutes(routesRaw []RouteRaw) ([]*Route, error) {
+	routes := []*Route{}
+	for _, route := range routesRaw {
+		r, err := route.CompileRoute()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		handler := h.Handler
-		if len(h.Middlewares) > 0 {
-			handler = middleware.Handlers(h.Handler, h.Middlewares...)
-		}
-		r.Handle(h.Path, handler).Methods(h.Methods...)
-		log.Printf("Registering %s with handlers for HTTP methods: %s", h.Path, strings.Join(h.Methods, ","))
+		r.Handler = middleware.Handlers(r.Handler, r.Middlewares...)
+		routes = append(routes, r)
+	}
+	return routes, nil
+}
+
+func (r *Router) Register(routes []*Route) error {
+	for _, route := range routes {
+		r.Handle(route.Path, route.Handler).Methods(route.Methods...)
+		log.Printf("Registering %s with handlers for HTTP methods: %s", route.Path, strings.Join(route.Methods, ","))
 	}
 	return nil
 }
 
-func (r *Router) injectServices(routes []RouteHandler, services map[string]interface{}) []RouteHandler {
+func InjectServices(routes []RouteRaw, svcs *services.Services) []RouteRaw {
+	sv := reflect.ValueOf(svcs).Elem()
 	for _, r := range routes {
 		s := reflect.TypeOf(r).Elem()
 		for index := 0; index < s.NumField(); index++ {
 			field := s.Field(index)
-
-			val, ok := field.Tag.Lookup("service")
+			tagValue, ok := field.Tag.Lookup("service")
 			if !ok {
 				continue
 			}
-			service, ok := services[val]
-			log.Println("We are here", service, ok, val)
-			if service, ok := services[val]; ok {
-				val := reflect.ValueOf(r).Elem()
-				if val.Field(index).CanSet() {
-					val.Field(index).Set(reflect.ValueOf(service))
-				}
-
+			serviceValue := sv.FieldByName(tagValue).Elem()
+			val := reflect.ValueOf(r).Elem()
+			if val.Field(index).CanSet() {
+				val.Field(index).Set(serviceValue)
 			}
 		}
 	}

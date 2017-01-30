@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
+	"github.com/dring1/jwt-oauth/lib/contextkeys"
 	"github.com/dring1/jwt-oauth/lib/errors"
 	"github.com/dring1/jwt-oauth/token"
 )
@@ -26,7 +28,6 @@ func NewTokenValidationMiddleware(tokenService token.Service) Middleware {
 func (t *TokenValidatorMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	header, ok := r.Header[AuthorizationHeader]
 	if !ok {
-
 		w.WriteHeader(401)
 		w.Write([]byte(errors.InvalidToken))
 		return
@@ -38,13 +39,17 @@ func (t *TokenValidatorMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	token := tokenHeader[1]
-	ok, err := t.TokenService.Validate(token)
+	tokenString := tokenHeader[1]
+	token, ok, err := t.TokenService.Validate(tokenString)
 	if !ok || err != nil {
 		w.WriteHeader(401)
 		w.Write([]byte(errors.InvalidToken))
 		return
 	}
+	// stick the token in the context
+
+	ctx := context.WithValue(r.Context(), contextkeys.Auth, *token)
+	r = r.WithContext(ctx)
 	t.handler.ServeHTTP(w, r)
 	return
 }

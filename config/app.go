@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"crypto/rand"
@@ -11,15 +11,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/dring1/jwt-oauth/config"
 	"github.com/pkg/errors"
 )
 
 type DefaultValFunc func() (interface{}, error)
 
-func NewAppConfig() (*config.Cfg, error) {
+func New() (*Cfg, error) {
 	var PrivateKey *pem.Block
-	privateKey := func(c *config.Cfg) error {
+	privateKey := func(c *Cfg) error {
 		privateKeyPemBlock, err := getEnvVal("PRIVATE_KEY", func() (interface{}, error) {
 			pk, _ := rsa.GenerateKey(rand.Reader, 1024)
 			bits := x509.MarshalPKCS1PrivateKey(pk)
@@ -36,7 +35,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.PrivateKey = privateKeyPemBlock.(*pem.Block).Bytes
 		return nil
 	}
-	publicKey := func(c *config.Cfg) error {
+	publicKey := func(c *Cfg) error {
 		getEnvVal("PUBLIC_KEY", func() (interface{}, error) {
 			pKey := PrivateKey.Bytes
 			privKey, err := x509.ParsePKCS1PrivateKey(pKey)
@@ -57,7 +56,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		return nil
 	}
 
-	port := func(c *config.Cfg) error {
+	port := func(c *Cfg) error {
 		p, err := getEnvVal("PORT", func() (interface{}, error) {
 			return 8080, nil
 		})
@@ -68,7 +67,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		return nil
 	}
 
-	gitHubClientID := func(c *config.Cfg) error {
+	gitHubClientID := func(c *Cfg) error {
 		ghCID, err := getEnvVal("GITHUB_CLIENT_ID", func() (interface{}, error) {
 			return nil, errors.Errorf("Did not provide GITHUB_CLIENT_ID")
 		})
@@ -79,7 +78,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		return nil
 	}
 
-	gitHubClientSecret := func(c *config.Cfg) error {
+	gitHubClientSecret := func(c *Cfg) error {
 		ghCS, err := getEnvVal("GITHUB_CLIENT_SECRET", func() (interface{}, error) {
 			return nil, errors.Errorf("Did not provide GITHUB_CLIENT_SECRET")
 		})
@@ -90,7 +89,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		return nil
 	}
 
-	oauthRedirectURL := func(c *config.Cfg) error {
+	oauthRedirectURL := func(c *Cfg) error {
 		rdURL, err := getEnvVal("OAUTH_REDIRECT_URL", func() (interface{}, error) {
 			return fmt.Sprintf("http://localhost:%d/github/callback", c.Port), nil
 		})
@@ -100,7 +99,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.OauthRedirectURL = rdURL.(string)
 		return nil
 	}
-	loggingEndpoint := func(c *config.Cfg) error {
+	loggingEndpoint := func(c *Cfg) error {
 		le, err := getEnvVal("LOGGING_ENDPOINT", func() (interface{}, error) {
 			return os.Stdout, nil
 		})
@@ -110,7 +109,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.LoggingEndpoint = le.(io.Writer)
 		return nil
 	}
-	redisEndPoint := func(c *config.Cfg) error {
+	redisEndPoint := func(c *Cfg) error {
 		re, err := getEnvVal("REDIS_ENDPOINT", func() (interface{}, error) {
 			return "localhost:6379", nil
 		})
@@ -120,9 +119,9 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.RedisEndpoint = re.(string)
 		return nil
 	}
-	jwtTTL := func(c *config.Cfg) error {
+	jwtTTL := func(c *Cfg) error {
 		re, err := getEnvVal("JWT_TTL", func() (interface{}, error) {
-			return (int)(time.Hour.Hours()), nil
+			return (int)(time.Hour.Seconds()), nil
 		})
 		if err != nil {
 			return err
@@ -130,7 +129,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.JwtTTL = re.(int)
 		return nil
 	}
-	jwtIss := func(c *config.Cfg) error {
+	jwtIss := func(c *Cfg) error {
 		re, err := getEnvVal("JWT_ISS", func() (interface{}, error) {
 			return "localhost", nil
 		})
@@ -140,7 +139,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		c.JwtIss = re.(string)
 		return nil
 	}
-	jwtSub := func(c *config.Cfg) error {
+	jwtSub := func(c *Cfg) error {
 		re, err := getEnvVal("JWT_SUB", func() (interface{}, error) {
 			return "localhost", nil
 		})
@@ -151,7 +150,7 @@ func NewAppConfig() (*config.Cfg, error) {
 		return nil
 	}
 	// var err error
-	return config.NewConfig(privateKey, publicKey, port,
+	return NewConfig(privateKey, publicKey, port,
 		gitHubClientID, gitHubClientSecret, oauthRedirectURL,
 		loggingEndpoint, redisEndPoint,
 		jwtTTL, jwtIss, jwtSub)

@@ -16,8 +16,8 @@ type Session struct {
 }
 
 type Token struct {
-	Value     string `json:"value"`
-	UserEmail string `json:"email"`
+	Value string `json:"value"`
+	Email string `json:"email"`
 }
 
 func NewService(t token.Service, c *cache.Service) (Service, error) {
@@ -35,8 +35,8 @@ func (s *Session) NewSession(key string) (*Token, error) {
 		return nil, err
 	}
 	return &Token{
-		UserEmail: key,
-		Value:     t,
+		Email: key,
+		Value: t,
 	}, nil
 }
 func (s *Session) DeleteSession(key string) error {
