@@ -5,4 +5,5 @@ const (
 	Auth  = "AUTHORIZATION"
 	Api   = "API_CONTEXT"
 	ReqId = "REQUEST_ID"
+	Value = "VALUE"
 )

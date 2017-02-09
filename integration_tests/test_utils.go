@@ -1,13 +1,14 @@
 package integration_tests
 
 import (
-	"encoding/json"
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 
 	"github.com/dring1/jwt-oauth/config"
+	"github.com/dring1/jwt-oauth/lib/contextkeys"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
 	"github.com/dring1/jwt-oauth/services"
@@ -79,6 +80,7 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 }
 
 func mockAuthRoutes(svcs *services.Services) []*routes.Route {
+	responder := routes.NewResponder()
 	loginRoute := &routes.GithubLoginRoute{
 		Route: routes.Route{
 			Path:    "/mock/github/login",
@@ -88,7 +90,7 @@ func mockAuthRoutes(svcs *services.Services) []*routes.Route {
 		ClientSecret: "TESTSECRET",
 		LoginHandler: nil,
 	}
-	r, _ := loginRoute.CompileRoute()
+	r, _ := loginRoute.CompileRoute(responder)
 	r.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/mock/github/callback", 301)
 	})
@@ -101,20 +103,17 @@ func mockAuthRoutes(svcs *services.Services) []*routes.Route {
 		ClientSecret: "TESTSECRET",
 		LoginHandler: nil,
 	}
-	cr, _ := callBackRoute.CompileRoute()
+	cr, _ := callBackRoute.CompileRoute(responder)
 	cr.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)
-		jwtToken, err := svcs.SessionService.NewSession("user@acme.com")
+		jwtToken, err := svcs.TokenService.NewToken("user@acme.com")
 		if err != nil {
 			w.WriteHeader(500)
 			return
 		}
-		err = json.NewEncoder(w).Encode(jwtToken)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
-
+		ctx := context.WithValue(r.Context(), contextkeys.Value, jwtToken)
+		r = r.WithContext(ctx)
+		routes.NewResponder().ServeHTTP(w, r)
 	})
 
 	return []*routes.Route{r, cr}

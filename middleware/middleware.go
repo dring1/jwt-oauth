@@ -18,7 +18,7 @@ func Handlers(handler http.Handler, middlewares ...Middleware) http.Handler {
 func DefaultMiddleWare(config *config.Cfg) []Middleware {
 	// order from last to first - LIFO
 	globalMiddlewares := []Middleware{
-		JsonResponseHandler,
+		//JsonResponseHandler,
 		NewApacheLoggingHandler(config.LoggingEndpoint),
 		AddUUID,
 		ContextCreate,

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
@@ -9,10 +8,9 @@ import (
 )
 
 type Services struct {
-	UserService    users.Service
-	TokenService   token.Service
-	SessionService sessions.Service
-	CacheService   *cache.Service
+	UserService  users.Service
+	TokenService token.Service
+	CacheService *cache.Service
 }
 
 func New(c *config.Cfg) (*Services, error) {
@@ -28,15 +26,10 @@ func New(c *config.Cfg) (*Services, error) {
 	if err != nil {
 		return nil, err
 	}
-	sessionService, err := sessions.NewService(tokenService, cacheService)
-	if err != nil {
-		return nil, err
-	}
 	services := &Services{
-		UserService:    userService,
-		TokenService:   tokenService,
-		CacheService:   cacheService,
-		SessionService: sessionService,
+		UserService:  userService,
+		TokenService: tokenService,
+		CacheService: cacheService,
 	}
 	return services, nil
 }

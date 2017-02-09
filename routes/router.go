@@ -11,20 +11,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type Responder http.Handler
+
 type Route struct {
 	Path        string
 	Methods     []string
 	Middlewares []middleware.Middleware
 	Handler     http.Handler
+	Respond     Responder
 }
 
-const (
-	Get  = "GET"
-	Post = "POST"
-)
-
 type RouteRaw interface {
-	CompileRoute() (*Route, error)
+	CompileRoute(Responder) (*Route, error)
 }
 
 type Router struct {
@@ -37,6 +35,11 @@ type Config struct {
 	ClientID     string
 	ClientSecret string
 }
+
+const (
+	Get  = "GET"
+	Post = "POST"
+)
 
 func NewRouter(routes []*Route) (*Router, error) {
 	router := Router{mux.NewRouter()}
@@ -69,18 +72,20 @@ func NewRoutes(config *Config) ([]*Route, error) {
 		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 	}
+	responder := NewResponder()
 	hydratedRoutes := InjectServices(routes, config.Services)
-	r, err := TransformRoutes(hydratedRoutes)
+
+	r, err := TransformRoutes(hydratedRoutes, responder)
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
 }
 
-func TransformRoutes(routesRaw []RouteRaw) ([]*Route, error) {
+func TransformRoutes(routesRaw []RouteRaw, responder Responder) ([]*Route, error) {
 	routes := []*Route{}
 	for _, route := range routesRaw {
-		r, err := route.CompileRoute()
+		r, err := route.CompileRoute(responder)
 		if err != nil {
 			return nil, err
 		}
