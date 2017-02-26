@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -17,7 +18,7 @@ type RefreshTokenRoute struct {
 	TokenService token.Service `service:"TokenService"`
 }
 
-func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
+func (rt *RefreshTokenRoute) CompileRoute(responder Responder) (*Route, error) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// Check context for token
 		iToken := r.Context().Value(contextkeys.Auth)
@@ -29,15 +30,17 @@ func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
 			return
 		}
 		// Respond with new token with same claims and all
-		tokenString, err := rt.TokenService.RefreshToken(&tok)
+		token, err := rt.TokenService.RefreshToken(&tok)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(500)
 			errors.ErrorHandler(w, r)
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(tokenString))
+
+		ctx := context.WithValue(r.Context(), contextkeys.Value, token)
+		r = r.WithContext(ctx)
+		responder.ServeHTTP(w, r)
 	}
 	rt.Handler = http.HandlerFunc(fn)
 

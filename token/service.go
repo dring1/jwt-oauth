@@ -7,6 +7,7 @@ import (
 	_jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/lib/errors"
+	"github.com/dring1/jwt-oauth/models"
 )
 
 type TokenService struct {
@@ -21,8 +22,8 @@ type TokenService struct {
 type TimeStamp int64
 
 type Service interface {
-	NewToken(string) (string, error)
-	RefreshToken(*Token) (string, error)
+	NewToken(string) (*Token, error)
+	RefreshToken(*Token) (*Token, error)
 	TimeToExpire(TimeStamp) TimeStamp
 	Validate(string) (*Token, bool, error)
 	Revoke(*Token) error
@@ -34,7 +35,7 @@ type CustomClaims struct {
 	_jwt.StandardClaims
 }
 
-type Token _jwt.Token
+type Token models.Token
 
 func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokISS, tokSub string, cache *cache.Service) (Service, error) {
 	return &TokenService{
@@ -49,7 +50,7 @@ func NewService(privKey, publicKey []byte, tokenTTL int, expireOffset int, tokIS
 
 }
 
-func (t *TokenService) NewToken(userID string) (string, error) {
+func (t *TokenService) NewToken(userID string) (*Token, error) {
 	exp := time.Now().Add(t.TokenTTL).Unix()
 	iss := t.TokenISS
 	sub := t.TokenSub
@@ -64,19 +65,10 @@ func (t *TokenService) NewToken(userID string) (string, error) {
 	token := _jwt.NewWithClaims(_jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(t.privateKey)
 	if err != nil {
-		return "", err
+		return &Token{}, err
 	}
-	return tokenString, nil
+	return &Token{T: *token, TokenString: tokenString}, nil
 }
-
-// Insert into cache here ?
-// func (backend *TokenService) Authenticate(interface{}) bool {
-// 	return true
-// }
-
-// func (backend *TokenService) Logout(tokenString string, token *jwt.Token) error {
-// 	return nil
-// }
 
 func (ts *TokenService) Validate(tokenString string) (*Token, bool, error) {
 	token, err := ts.parseToken(tokenString)
@@ -87,7 +79,7 @@ func (ts *TokenService) Validate(tokenString string) (*Token, bool, error) {
 	if revoked || err != nil {
 		return nil, false, err
 	}
-	return token, token.Valid, nil
+	return token, token.T.Valid, nil
 }
 func (t *TokenService) TimeToExpire(timestamp TimeStamp) TimeStamp {
 	tm := time.Unix(int64(timestamp), 0)
@@ -104,27 +96,28 @@ func (t *TokenService) parseToken(tokenString string) (*Token, error) {
 		}
 		return []byte(t.privateKey), nil
 	})
-	return (*Token)(tok), err
+	return &Token{T: *tok}, err
+	//return (*Token)(tok), err
 }
 
 func (t *TokenService) Revoke(token *Token) error {
 	// the duration of the token
-	return t.cache.Set(token.Raw, 0, t.TokenTTL).Err()
+	return t.cache.Set(token.T.Raw, 0, t.TokenTTL).Err()
 }
 
 func (t *TokenService) IsRevoked(token *Token) (bool, error) {
-	return t.cache.Exists(token.Raw).Result()
+	return t.cache.Exists(token.T.Raw).Result()
 }
 
-func (t *TokenService) RefreshToken(token *Token) (string, error) {
+func (t *TokenService) RefreshToken(token *Token) (*Token, error) {
 	// revoke token
 	err := t.Revoke(token)
 	if err != nil {
-		return "", err
+		return &Token{}, err
 	}
-	claims, ok := token.Claims.(*CustomClaims)
+	claims, ok := token.T.Claims.(*CustomClaims)
 	if !ok {
-		return "", fmt.Errorf(errors.InvalidToken)
+		return &Token{}, fmt.Errorf(errors.InvalidToken)
 	}
 	return t.NewToken(claims.Email)
 }

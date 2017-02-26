@@ -1,5 +1,8 @@
 package models
 
-type AuthToken struct {
-	T string `json:"token" form:"token"`
+import _jwt "github.com/dgrijalva/jwt-go"
+
+type Token struct {
+	T           _jwt.Token `json:"-"`
+	TokenString string     `json:"token"`
 }

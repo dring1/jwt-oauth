@@ -1,21 +1,16 @@
 package routes
 
 import (
-	"encoding/json"
+	"context"
 	"log"
 	"net/http"
 
-	"golang.org/x/net/context"
-
-	"github.com/dghubble/ctxh"
-	"github.com/dghubble/gologin/github"
-
 	"fmt"
 
-	oauth2Login "github.com/dghubble/gologin/oauth2"
-	s "github.com/dring1/jwt-oauth/app/sessions"
 	"github.com/dring1/jwt-oauth/app/users"
+	"github.com/dring1/jwt-oauth/lib/contextkeys"
 	"github.com/dring1/jwt-oauth/lib/errors"
+	"github.com/dring1/jwt-oauth/token"
 	githubClient "github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	githubOAuth2 "golang.org/x/oauth2/github"
@@ -39,7 +34,7 @@ type GithubLoginRoute struct {
 	Config       *oauth2.Config
 }
 
-func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
+func (ghr *GithubLoginRoute) CompileRoute(Responder) (*Route, error) {
 	ghr.Config = &oauth2.Config{
 		ClientID:     ghr.ClientID,
 		ClientSecret: ghr.ClientSecret,
@@ -58,15 +53,15 @@ func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 
 type GithubCallbackRoute struct {
 	Route
-	ClientID       string
-	ClientSecret   string
-	RedirectURL    string
-	UserService    users.Service `service:"UserService"`
-	SessionService s.Service     `service:"SessionService"`
-	Config         *oauth2.Config
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	UserService  users.Service `service:"UserService"`
+	TokenService token.Service `service:"TokenService"`
+	Config       *oauth2.Config
 }
 
-func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
+func (gcr *GithubCallbackRoute) CompileRoute(responder Responder) (*Route, error) {
 	gcr.Config = &oauth2.Config{
 		ClientID:     gcr.ClientID,
 		ClientSecret: gcr.ClientSecret,
@@ -75,48 +70,8 @@ func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 		Scopes:       []string{"user:email"},
 	}
 
-	gcr.Handler = http.HandlerFunc(gcr.handleGitHubCallback)
+	gcr.Handler = gcr.NewHandleGitHubCallback(responder)
 	return &gcr.Route, nil
-}
-
-func (gcr *GithubCallbackRoute) defaultLoginHandler() ctxh.ContextHandler {
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		log.Println("retrieving github user from context")
-		githubUser, err := github.UserFromContext(ctx)
-		t, err := oauth2Login.TokenFromContext(ctx)
-		validateGithubUser(t.AccessToken, githubUser.Email)
-		// fmt.Println(t.)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte("Error retrieving github user"))
-
-			return
-		}
-		// log.Println(githubUser)
-		err = gcr.UserService.Authenticate(*githubUser.Email)
-		if err != nil {
-			// Failed to Authenticate
-			w.WriteHeader(http.StatusUnauthorized)
-			errors.ErrorHandler(w, r)
-			return
-		}
-
-		token, err := gcr.SessionService.NewSession(*githubUser.Email)
-		if err != nil {
-			w.WriteHeader(500)
-			errors.ErrorHandler(w, r)
-			return
-		}
-		err = json.NewEncoder(w).Encode(token)
-		if err != nil {
-			w.WriteHeader(500)
-			errors.ErrorHandler(w, r)
-			return
-		}
-	}
-
-	return ctxh.ContextHandlerFunc(handler)
 }
 
 func validateGithubUser(token string, expectedEmail *string) {
@@ -128,7 +83,7 @@ func validateGithubUser(token string, expectedEmail *string) {
 	client := githubClient.NewClient(tc)
 
 	// list all repositories for the authenticated user
-	emails, _, err := client.Users.ListEmails(nil)
+	emails, _, err := client.Users.ListEmails(context.Background(), nil)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -140,52 +95,55 @@ func validateGithubUser(token string, expectedEmail *string) {
 	}
 }
 
-func (gcr *GithubCallbackRoute) handleGitHubCallback(w http.ResponseWriter, r *http.Request) {
-	state := r.FormValue("state")
-	if state != oauthStateString {
-		//error out here
-		log.Printf("invalid oauth state, expected '%s', got '%s'\n", oauthStateString, state)
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
+func (gcr *GithubCallbackRoute) NewHandleGitHubCallback(responder Responder) http.Handler {
 
-	code := r.FormValue("code")
-	token, err := gcr.Config.Exchange(oauth2.NoContext, code)
-	if err != nil {
-		//error out here
-		log.Printf("oauthConf.Exchange() failed with '%s'\n", err)
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		state := r.FormValue("state")
+		if state != oauthStateString {
+			//error out here
+			log.Printf("invalid oauth state, expected '%s', got '%s'\n", oauthStateString, state)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
 
-	oauthClient := gcr.Config.Client(oauth2.NoContext, token)
-	client := githubClient.NewClient(oauthClient)
-	user, _, err := client.Users.Get("")
-	if err != nil {
-		//error out here
-		log.Printf("client.Users.Get() faled with '%s'\n", err)
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-	err = gcr.UserService.Authenticate(*user.Email)
-	if err != nil {
-		// Failed to Authenticate
-		w.WriteHeader(http.StatusUnauthorized)
-		errors.ErrorHandler(w, r)
-		return
-	}
+		code := r.FormValue("code")
+		token, err := gcr.Config.Exchange(oauth2.NoContext, code)
+		if err != nil {
+			//error out here
+			log.Printf("oauthConf.Exchange() failed with '%s'\n", err)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
 
-	jwtToken, err := gcr.SessionService.NewSession(*user.Email)
-	if err != nil {
-		w.WriteHeader(500)
-		errors.ErrorHandler(w, r)
-		return
-	}
-	err = json.NewEncoder(w).Encode(jwtToken)
-	if err != nil {
-		w.WriteHeader(500)
-		errors.ErrorHandler(w, r)
-		return
-	}
+		oauthClient := gcr.Config.Client(oauth2.NoContext, token)
+		client := githubClient.NewClient(oauthClient)
+		user, _, err := client.Users.Get(r.Context(), "")
+		if err != nil {
+			//error out here
+			log.Printf("client.Users.Get() faled with '%s'\n", err)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
+		err = gcr.UserService.Authenticate(*user.Email)
+		if err != nil {
+			// Failed to Authenticate
+			w.WriteHeader(http.StatusUnauthorized)
+			errors.ErrorHandler(w, r)
+			return
+		}
 
+		//jwtToken, err := gcr.SessionService.NewSession(*user.Email)
+		jwtToken, err := gcr.TokenService.NewToken(*user.Email)
+		if err != nil {
+			w.WriteHeader(500)
+			errors.ErrorHandler(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), contextkeys.Value, jwtToken)
+		r = r.WithContext(ctx)
+		log.Println("calling responder")
+		responder.ServeHTTP(w, r)
+		return
+	}
+	return http.HandlerFunc(fn)
 }

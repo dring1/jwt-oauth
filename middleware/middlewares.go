@@ -8,7 +8,6 @@ type MiddlewareMap map[MiddlewareKey]Middleware
 const (
 	ValidateMiddleware = iota
 	LoggingMiddleware
-	JsonResponseMiddleware
 )
 
 // TODO also take config

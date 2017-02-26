@@ -1,9 +1,8 @@
-package middleware
+package routes
 
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/dring1/jwt-oauth/lib/contextkeys"
 )
@@ -13,15 +12,13 @@ type JSONResponse struct {
 	Error interface{} `json:"error"`
 }
 
-// TODO: Possible - a before and after middleware hook, with this being the last
-func JsonResponseHandler(next http.Handler) http.Handler {
+func NewResponder() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		jsonResponse := &JSONResponse{
 			Value: ctx.Value(contextkeys.Value),
 			Error: ctx.Value(contextkeys.Error),
 		}
-		json.NewEncoder(os.Stdout).Encode(jsonResponse)
 		json.NewEncoder(w).Encode(jsonResponse)
 		return
 	}
