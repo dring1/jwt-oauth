@@ -1,4 +1,4 @@
 #!/bin/bash
 
-docker rm postgres || true && docker run -d -p 5432:5432 --name postgres postgres
+docker rm postgres || true && docker run -d -p 5432:54321 --name postgres postgres
 docker rm redis || true &&  docker run -d -p 6379:6379 --name redis redis
