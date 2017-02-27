@@ -14,6 +14,7 @@ type Cfg struct {
 	GitHubClientSecret string
 	OauthRedirectURL   string
 	LoggingEndpoint    io.Writer
+	LogLevel           string
 	RedisEndpoint      string
 	JwtTTL             int
 	JwtIss             string

@@ -63,7 +63,7 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 	rs = append(rs, authRoutes...)
 	m, err := routes.NewRouter(rs)
 	// TODO: move to default middlewares ?
-	defaultMiddlewares := middleware.DefaultMiddleWare(config)
+	defaultMiddlewares := middleware.DefaultMiddleWare(config, svcs)
 	handler := middleware.Handlers(m, defaultMiddlewares...)
 	if err != nil {
 		log.Fatal(err)

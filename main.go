@@ -38,7 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	globalMiddlewares := middleware.DefaultMiddleWare(c)
+	globalMiddlewares := middleware.DefaultMiddleWare(c, svcs)
 	log.Printf("Serving on port :%d", c.Port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, globalMiddlewares...))
 	log.Fatal(err)

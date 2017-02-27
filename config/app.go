@@ -109,6 +109,16 @@ func New() (*Cfg, error) {
 		c.LoggingEndpoint = le.(io.Writer)
 		return nil
 	}
+	logLevel := func(c *Cfg) error {
+		re, err := getEnvVal("LOG_LEVEL", func() (interface{}, error) {
+			return "debug", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.LogLevel = re.(string)
+		return nil
+	}
 	redisEndPoint := func(c *Cfg) error {
 		re, err := getEnvVal("REDIS_ENDPOINT", func() (interface{}, error) {
 			return "localhost:6379", nil
@@ -152,7 +162,7 @@ func New() (*Cfg, error) {
 	// var err error
 	return NewConfig(privateKey, publicKey, port,
 		gitHubClientID, gitHubClientSecret, oauthRedirectURL,
-		loggingEndpoint, redisEndPoint,
+		loggingEndpoint, logLevel, redisEndPoint,
 		jwtTTL, jwtIss, jwtSub)
 }
 
