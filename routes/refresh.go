@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/dring1/jwt-oauth/lib/contextkeys"
@@ -24,17 +23,19 @@ func (rt *RefreshTokenRoute) CompileRoute(responder Responder) (*Route, error) {
 		iToken := r.Context().Value(contextkeys.Auth)
 		tok, ok := (iToken).(token.Token)
 		if !ok {
-			log.Println("Type assertion failed")
 			w.WriteHeader(401)
-			errors.ErrorHandler(w, r)
+			ctx := context.WithValue(r.Context(), contextkeys.Error, errors.InvalidToken)
+			r = r.WithContext(ctx)
+			responder.ServeHTTP(w, r)
 			return
 		}
 		// Respond with new token with same claims and all
 		token, err := rt.TokenService.RefreshToken(&tok)
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(500)
-			errors.ErrorHandler(w, r)
+			w.WriteHeader(401)
+			ctx := context.WithValue(r.Context(), contextkeys.Error, err)
+			r = r.WithContext(ctx)
+			responder.ServeHTTP(w, r)
 			return
 		}
 

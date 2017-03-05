@@ -3,7 +3,6 @@ package middleware
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/dring1/jwt-oauth/lib/contextkeys"
 )
@@ -21,7 +20,6 @@ func JsonResponseHandler(next http.Handler) http.Handler {
 			Value: ctx.Value(contextkeys.Value),
 			Error: ctx.Value(contextkeys.Error),
 		}
-		json.NewEncoder(os.Stdout).Encode(jsonResponse)
 		json.NewEncoder(w).Encode(jsonResponse)
 		return
 	}
