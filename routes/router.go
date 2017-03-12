@@ -22,7 +22,7 @@ type Route struct {
 }
 
 type RouteRaw interface {
-	CompileRoute(Responder) (*Route, error)
+	CompileRoute() (*Route, error)
 }
 
 type Router struct {
@@ -72,20 +72,19 @@ func NewRoutes(config *Config) ([]*Route, error) {
 		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 	}
-	responder := NewResponder()
 	hydratedRoutes := InjectServices(routes, config.Services)
 
-	r, err := TransformRoutes(hydratedRoutes, responder)
+	r, err := TransformRoutes(hydratedRoutes)
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
 }
 
-func TransformRoutes(routesRaw []RouteRaw, responder Responder) ([]*Route, error) {
+func TransformRoutes(routesRaw []RouteRaw) ([]*Route, error) {
 	routes := []*Route{}
 	for _, route := range routesRaw {
-		r, err := route.CompileRoute(responder)
+		r, err := route.CompileRoute()
 		if err != nil {
 			return nil, err
 		}

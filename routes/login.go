@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/dring1/jwt-oauth/app/users"
+	jsonresponder "github.com/dring1/jwt-oauth/jsonResponder"
 	"github.com/dring1/jwt-oauth/lib/contextkeys"
 	"github.com/dring1/jwt-oauth/lib/errors"
 	"github.com/dring1/jwt-oauth/token"
@@ -34,7 +35,7 @@ type GithubLoginRoute struct {
 	Config       *oauth2.Config
 }
 
-func (ghr *GithubLoginRoute) CompileRoute(Responder) (*Route, error) {
+func (ghr *GithubLoginRoute) CompileRoute() (*Route, error) {
 	ghr.Config = &oauth2.Config{
 		ClientID:     ghr.ClientID,
 		ClientSecret: ghr.ClientSecret,
@@ -53,15 +54,16 @@ func (ghr *GithubLoginRoute) CompileRoute(Responder) (*Route, error) {
 
 type GithubCallbackRoute struct {
 	Route
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	UserService  users.Service `service:"UserService"`
-	TokenService token.Service `service:"TokenService"`
-	Config       *oauth2.Config
+	ClientID      string
+	ClientSecret  string
+	RedirectURL   string
+	UserService   users.Service         `service:"UserService"`
+	TokenService  token.Service         `service:"TokenService"`
+	JsonResponder jsonresponder.Service `service:"JsonResponder"`
+	Config        *oauth2.Config
 }
 
-func (gcr *GithubCallbackRoute) CompileRoute(responder Responder) (*Route, error) {
+func (gcr *GithubCallbackRoute) CompileRoute() (*Route, error) {
 	gcr.Config = &oauth2.Config{
 		ClientID:     gcr.ClientID,
 		ClientSecret: gcr.ClientSecret,
@@ -70,7 +72,7 @@ func (gcr *GithubCallbackRoute) CompileRoute(responder Responder) (*Route, error
 		Scopes:       []string{"user:email"},
 	}
 
-	gcr.Handler = gcr.NewHandleGitHubCallback(responder)
+	gcr.Handler = gcr.NewHandleGitHubCallback()
 	return &gcr.Route, nil
 }
 
@@ -95,7 +97,7 @@ func validateGithubUser(token string, expectedEmail *string) {
 	}
 }
 
-func (gcr *GithubCallbackRoute) NewHandleGitHubCallback(responder Responder) http.Handler {
+func (gcr *GithubCallbackRoute) NewHandleGitHubCallback() http.Handler {
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
@@ -132,7 +134,6 @@ func (gcr *GithubCallbackRoute) NewHandleGitHubCallback(responder Responder) htt
 			return
 		}
 
-		//jwtToken, err := gcr.SessionService.NewSession(*user.Email)
 		jwtToken, err := gcr.TokenService.NewToken(*user.Email)
 		if err != nil {
 			w.WriteHeader(500)
@@ -141,8 +142,7 @@ func (gcr *GithubCallbackRoute) NewHandleGitHubCallback(responder Responder) htt
 		}
 		ctx := context.WithValue(r.Context(), contextkeys.Value, jwtToken)
 		r = r.WithContext(ctx)
-		log.Println("calling responder")
-		responder.ServeHTTP(w, r)
+		gcr.JsonResponder.Respond(w, r)
 		return
 	}
 	return http.HandlerFunc(fn)

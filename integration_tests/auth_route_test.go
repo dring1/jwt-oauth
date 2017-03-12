@@ -62,7 +62,7 @@ func TestProtectedRouteWithInvalidToken(t *testing.T) {
 
 func TestProtectedRouteWithExpiredToken(t *testing.T) {
 	TtlSeconds := 1
-	tokenService, _ := token.NewService(app.Config.PrivateKey, app.Config.PublicKey, TtlSeconds, app.Config.JWTExpirationDelta, app.Config.JwtIss, app.Config.JwtSub, app.Services.CacheService)
+	tokenService, _ := token.NewService(app.Config.PrivateKey, app.Config.PublicKey, TtlSeconds, app.Config.JWTExpirationDelta, app.Config.JwtIss, app.Config.JwtSub, app.Services.Cache)
 	token, err := tokenService.NewToken("vandelay@industries.com")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, token)
