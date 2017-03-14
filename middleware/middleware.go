@@ -20,7 +20,7 @@ func DefaultMiddleWare(config *config.Cfg, svcs *services.Services) []Middleware
 	// order from last to first - LIFO
 	globalMiddlewares := []Middleware{
 		//JsonResponseHandler,
-		NewApacheLoggingHandler(svcs.LoggerService),
+		NewApacheLoggingHandler(svcs.Logger),
 		AddUUID,
 		ContextCreate,
 		RecoverHandler,

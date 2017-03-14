@@ -80,7 +80,6 @@ func NewTestApp(config *config.Cfg, svcs *services.Services) *TestApp {
 }
 
 func mockAuthRoutes(svcs *services.Services) []*routes.Route {
-	responder := routes.NewResponder()
 	loginRoute := &routes.GithubLoginRoute{
 		Route: routes.Route{
 			Path:    "/mock/github/login",
@@ -90,7 +89,7 @@ func mockAuthRoutes(svcs *services.Services) []*routes.Route {
 		ClientSecret: "TESTSECRET",
 		LoginHandler: nil,
 	}
-	r, _ := loginRoute.CompileRoute(responder)
+	r, _ := loginRoute.CompileRoute()
 	r.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/mock/github/callback", 301)
 	})
@@ -103,7 +102,7 @@ func mockAuthRoutes(svcs *services.Services) []*routes.Route {
 		ClientSecret: "TESTSECRET",
 		LoginHandler: nil,
 	}
-	cr, _ := callBackRoute.CompileRoute(responder)
+	cr, _ := callBackRoute.CompileRoute()
 	cr.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)
 		jwtToken, err := svcs.TokenService.NewToken("user@acme.com")

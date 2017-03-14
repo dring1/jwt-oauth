@@ -6,7 +6,7 @@ type TestRoute struct {
 	Route
 }
 
-func (r *TestRoute) CompileRoute(Responder) (*Route, error) {
+func (r *TestRoute) CompileRoute() (*Route, error) {
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)

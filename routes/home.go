@@ -10,7 +10,7 @@ type HomeRoute struct {
 	StaticFilePath string
 }
 
-func (r *HomeRoute) CompileRoute(Responder) (*Route, error) {
+func (r *HomeRoute) CompileRoute() (*Route, error) {
 	_, err := filepath.Abs(r.StaticFilePath)
 	if err != nil {
 		return nil, err

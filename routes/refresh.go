@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	jsonresponder "github.com/dring1/jwt-oauth/jsonResponder"
 	"github.com/dring1/jwt-oauth/lib/contextkeys"
 	"github.com/dring1/jwt-oauth/lib/errors"
 	"github.com/dring1/jwt-oauth/token"
@@ -14,10 +15,11 @@ import (
 // blacklist the token with a TTL until it expires
 type RefreshTokenRoute struct {
 	Route
-	TokenService token.Service `service:"TokenService"`
+	JsonResponder jsonresponder.Service `service:"JsonResponder"`
+	TokenService  token.Service         `service:"TokenService"`
 }
 
-func (rt *RefreshTokenRoute) CompileRoute(responder Responder) (*Route, error) {
+func (rt *RefreshTokenRoute) CompileRoute() (*Route, error) {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// Check context for token
 		iToken := r.Context().Value(contextkeys.Auth)
@@ -26,8 +28,7 @@ func (rt *RefreshTokenRoute) CompileRoute(responder Responder) (*Route, error) {
 			w.WriteHeader(401)
 			ctx := context.WithValue(r.Context(), contextkeys.Error, errors.InvalidToken)
 			r = r.WithContext(ctx)
-			responder.ServeHTTP(w, r)
-			return
+			rt.JsonResponder.Respond(w, r)
 		}
 		// Respond with new token with same claims and all
 		token, err := rt.TokenService.RefreshToken(&tok)
@@ -35,13 +36,12 @@ func (rt *RefreshTokenRoute) CompileRoute(responder Responder) (*Route, error) {
 			w.WriteHeader(401)
 			ctx := context.WithValue(r.Context(), contextkeys.Error, err)
 			r = r.WithContext(ctx)
-			responder.ServeHTTP(w, r)
-			return
+			rt.JsonResponder.Respond(w, r)
 		}
 
 		ctx := context.WithValue(r.Context(), contextkeys.Value, token)
 		r = r.WithContext(ctx)
-		responder.ServeHTTP(w, r)
+		rt.JsonResponder.Respond(w, r)
 	}
 	rt.Handler = http.HandlerFunc(fn)
 
