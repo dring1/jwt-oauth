@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -159,11 +160,92 @@ func New() (*Cfg, error) {
 		c.JwtSub = re.(string)
 		return nil
 	}
+	seedDataFilePath := func(c *Cfg) error {
+		seedData, err := getEnvVal("SEED_DATA_FILEPATH", func() (interface{}, error) {
+			return "", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.SeedDataFilePath = seedData.(string)
+		return nil
+	}
+	dbUser := func(c *Cfg) error {
+		user, err := getEnvVal("POSTGRES_USER", func() (interface{}, error) {
+			return "postgres", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.DbUser = user.(string)
+		return nil
+	}
+	dbPassword := func(c *Cfg) error {
+		dbPassword, err := getEnvVal("POSTGRES_PASSWORD", func() (interface{}, error) {
+			return "", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.DbPassword = dbPassword.(string)
+		return nil
+	}
+	dbHost := func(c *Cfg) error {
+		host, err := getEnvVal("POSTGRES_HOST", func() (interface{}, error) {
+			return "localhost", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.DbHost = host.(string)
+		return nil
+	}
+	dbPort := func(c *Cfg) error {
+		p, err := getEnvVal("POSTGRES_PORT", func() (interface{}, error) {
+			return 5432, nil
+		})
+		if err != nil {
+			return err
+		}
+		switch t := p.(type) {
+		case string:
+
+			v, err := strconv.Atoi(t)
+			if err != nil {
+				return err
+			}
+			c.DbPort = v
+		default:
+			c.DbPort = p.(int)
+
+		}
+		return nil
+	}
+	dbName := func(c *Cfg) error {
+		name, err := getEnvVal("DATABASE_NAME", func() (interface{}, error) {
+			return "development", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.DbName = name.(string)
+		return nil
+	}
+	dbSSL := func(c *Cfg) error {
+		ssl, err := getEnvVal("POSTGRES_SSL", func() (interface{}, error) {
+			return "disable", nil
+		})
+		if err != nil {
+			return err
+		}
+		c.DbSSL = ssl.(string)
+		return nil
+	}
 	// var err error
 	return NewConfig(privateKey, publicKey, port,
 		gitHubClientID, gitHubClientSecret, oauthRedirectURL,
 		loggingEndpoint, logLevel, redisEndPoint,
-		jwtTTL, jwtIss, jwtSub)
+		jwtTTL, jwtIss, jwtSub, seedDataFilePath, dbUser, dbPassword, dbHost, dbPort, dbName, dbSSL)
 }
 
 func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {

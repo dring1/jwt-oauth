@@ -14,6 +14,6 @@ const (
 func New(svcs *services.Services) (MiddlewareMap, error) {
 	m := make(MiddlewareMap)
 	m[ValidateMiddleware] = NewTokenValidationMiddleware(svcs.TokenService)
-	m[LoggingMiddleware] = NewApacheLoggingHandler()
+	//m[LoggingMiddleware] = NewApacheLoggingHandler(svcs.)
 	return m, nil
 }

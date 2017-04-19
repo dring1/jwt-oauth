@@ -1,32 +1,38 @@
 package database
 
 import (
-	"github.com/dring1/jwt-oauth/models"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"database/sql"
+	"fmt"
+	"log"
+
+	_ "github.com/lib/pq"
 )
 
-type DatabaseService struct {
-	*gorm.DB
+type Service struct {
+	DB *sql.DB
 }
 
-func NewService() (*DatabaseService, error) {
-	db, err := gorm.Open("postgres", "user=postgres sslmode=disable")
+type Config struct {
+	User     string
+	Password string
+	Host     string
+	Port     int
+	DbName   string
+	SSL      string
+}
+
+func NewService(c *Config) (*Service, error) {
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, c.User, c.Password, c.DbName, c.SSL)
+	log.Println(connectionString)
+
+	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
-	d := &DatabaseService{db}
-	d.AutoMigrate(&models.User{})
-	return d, nil
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return &Service{DB: db}, nil
 }
-
-// func (db *DatabaseService) RegisterService(s *[]services.Service) {
-//
-// }
-
-// func (db *DataBase) InsertSubmissions(subs []*reddit.Submission) error {
-// 	for _, s := range subs {
-// 		db.gm.Create(s)
-// 	}
-// 	return nil
-// }
