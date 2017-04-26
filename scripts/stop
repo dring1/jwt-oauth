@@ -1,0 +1,14 @@
+#!/bin/bash
+
+CONTAINERS=(
+"redis"
+"postgres"
+"pgadmin"
+)
+
+# for each container
+# stop and rm
+for container in "${CONTAINERS[@]}"
+    do
+        docker stop ${container} && docker kill ${container}
+    done

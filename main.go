@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/dring1/jwt-oauth/config"
+	"github.com/dring1/jwt-oauth/database"
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/routes"
+	"github.com/dring1/jwt-oauth/seeder"
 	"github.com/dring1/jwt-oauth/services"
 )
 
@@ -20,6 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	err = seed(svcs.Database, c)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	middlewares, err := middleware.New(svcs)
 	if err != nil {
 		log.Fatalln(err)
@@ -42,4 +50,18 @@ func main() {
 	log.Printf("Serving on port :%d", c.Port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", c.Port), middleware.Handlers(router, globalMiddlewares...))
 	log.Fatal(err)
+}
+
+func seed(db *database.Service, c *config.Cfg) error {
+	log.Println("seeding...")
+	if c.SeedDataFilePath == "" {
+		return nil
+	}
+
+	seedConfig := seeder.Config{
+		SeedDataFilePath: c.SeedDataFilePath,
+		Db:               db,
+	}
+
+	return seeder.Seed(&seedConfig)
 }

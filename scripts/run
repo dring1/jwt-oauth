@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
 
-docker rm postgres || true && docker run -d -p 5432:54321 --name postgres -e POSTGRES_PASSWORD=password postgres
-docker rm redis || true &&  docker run -d -p 6379:6379 --name redis redis
+docker rm -f postgres || true && docker run -d -p 54321:5432 --name postgres postgres
+docker rm -f pgadmin || true && docker run -p 5050:5050 -d --name pgadmin "thajeztah/pgadmin4"
+docker rm -f redis ||true && docker run -d -p 6379:6379 --name redis redis
