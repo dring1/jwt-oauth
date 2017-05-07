@@ -60,8 +60,8 @@ func seed(db *database.Service, c *config.Cfg) error {
 
 	seedConfig := seeder.Config{
 		SeedDataFilePath: c.SeedDataFilePath,
-		Db:               db,
+		DbName:           c.DbName,
 	}
 
-	return seeder.Seed(&seedConfig)
+	return seeder.Seed(db, &seedConfig)
 }

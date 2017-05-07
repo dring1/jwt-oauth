@@ -1,7 +1,6 @@
 CREATE TABLE cocktails (
-    id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY NOT NULL,
     name varchar(256) UNIQUE,
-    ingredients text[],
-    instructions text[]
+    ingredients jsonb,
+    instructions jsonb
 )
-

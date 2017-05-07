@@ -171,7 +171,7 @@ func New() (*Cfg, error) {
 		return nil
 	}
 	dbUser := func(c *Cfg) error {
-		user, err := getEnvVal("POSTGRES_USER", func() (interface{}, error) {
+		user, err := getEnvVal("MONGO_USER", func() (interface{}, error) {
 			return "postgres", nil
 		})
 		if err != nil {
@@ -181,7 +181,7 @@ func New() (*Cfg, error) {
 		return nil
 	}
 	dbPassword := func(c *Cfg) error {
-		dbPassword, err := getEnvVal("POSTGRES_PASSWORD", func() (interface{}, error) {
+		dbPassword, err := getEnvVal("MONGO_PASSWORD", func() (interface{}, error) {
 			return "", nil
 		})
 		if err != nil {
@@ -191,7 +191,7 @@ func New() (*Cfg, error) {
 		return nil
 	}
 	dbHost := func(c *Cfg) error {
-		host, err := getEnvVal("POSTGRES_HOST", func() (interface{}, error) {
+		host, err := getEnvVal("MONGO_HOST", func() (interface{}, error) {
 			return "localhost", nil
 		})
 		if err != nil {
@@ -201,8 +201,8 @@ func New() (*Cfg, error) {
 		return nil
 	}
 	dbPort := func(c *Cfg) error {
-		p, err := getEnvVal("POSTGRES_PORT", func() (interface{}, error) {
-			return 5432, nil
+		p, err := getEnvVal("MONGO_PORT", func() (interface{}, error) {
+			return 27017, nil
 		})
 		if err != nil {
 			return err
@@ -231,21 +231,11 @@ func New() (*Cfg, error) {
 		c.DbName = name.(string)
 		return nil
 	}
-	dbSSL := func(c *Cfg) error {
-		ssl, err := getEnvVal("POSTGRES_SSL", func() (interface{}, error) {
-			return "disable", nil
-		})
-		if err != nil {
-			return err
-		}
-		c.DbSSL = ssl.(string)
-		return nil
-	}
 	// var err error
 	return NewConfig(privateKey, publicKey, port,
 		gitHubClientID, gitHubClientSecret, oauthRedirectURL,
 		loggingEndpoint, logLevel, redisEndPoint,
-		jwtTTL, jwtIss, jwtSub, seedDataFilePath, dbUser, dbPassword, dbHost, dbPort, dbName, dbSSL)
+		jwtTTL, jwtIss, jwtSub, seedDataFilePath, dbUser, dbPassword, dbHost, dbPort, dbName)
 }
 
 func getEnvVal(key string, defaultValue DefaultValFunc) (interface{}, error) {
