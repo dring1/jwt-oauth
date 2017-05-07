@@ -19,6 +19,13 @@ type Cfg struct {
 	JwtTTL             int
 	JwtIss             string
 	JwtSub             string
+	SeedDataFilePath   string
+	DbUser             string
+	DbPassword         string
+	DbHost             string
+	DbPort             int
+	DbName             string
+	DbSSL              string
 }
 
 func NewConfig(opts ...func(*Cfg) error) (*Cfg, error) {

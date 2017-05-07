@@ -1,32 +1,50 @@
 package database
 
-import (
-	"github.com/dring1/jwt-oauth/models"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-)
+import mgo "gopkg.in/mgo.v2"
 
-type DatabaseService struct {
-	*gorm.DB
+type Service struct {
+	Session *mgo.Session
 }
 
-func NewService() (*DatabaseService, error) {
-	db, err := gorm.Open("postgres", "user=postgres sslmode=disable")
+type Config struct {
+	User     string
+	Password string
+	Host     string
+	Port     int
+	DbName   string
+	SSL      string
+}
+
+func NewService(c *Config) (*Service, error) {
+	session, err := mgo.Dial("localhost")
 	if err != nil {
 		return nil, err
 	}
-	d := &DatabaseService{db}
-	d.AutoMigrate(&models.User{})
-	return d, nil
+	session.SetMode(mgo.Monotonic, true)
+	mg := &Service{
+		Session: session,
+	}
+
+	err = Create(mg.Session, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return mg, nil
+
 }
 
-// func (db *DatabaseService) RegisterService(s *[]services.Service) {
-//
-// }
+func Create(s *mgo.Session, config *Config) error {
+	session := s.Copy()
+	defer session.Close()
+	c := session.DB(config.DbName).C("cocktails")
 
-// func (db *DataBase) InsertSubmissions(subs []*reddit.Submission) error {
-// 	for _, s := range subs {
-// 		db.gm.Create(s)
-// 	}
-// 	return nil
-// }
+	index := mgo.Index{
+		Key:        []string{"name"},
+		Unique:     true,
+		DropDups:   true,
+		Background: true,
+		Sparse:     true,
+	}
+	return c.EnsureIndex(index)
+}

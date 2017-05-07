@@ -1,0 +1,13 @@
+#!/bin/bash
+
+CONTAINERS=(
+"redis"
+"mongo"
+)
+
+# for each container
+# stop and rm
+for container in "${CONTAINERS[@]}"
+    do
+        docker stop ${container} && docker kill ${container}
+    done
