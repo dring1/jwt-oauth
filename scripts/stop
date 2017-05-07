@@ -2,8 +2,7 @@
 
 CONTAINERS=(
 "redis"
-"postgres"
-"pgadmin"
+"mongo"
 )
 
 # for each container
