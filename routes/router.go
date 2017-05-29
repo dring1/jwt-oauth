@@ -9,6 +9,7 @@ import (
 	"github.com/dring1/jwt-oauth/middleware"
 	"github.com/dring1/jwt-oauth/services"
 	"github.com/gorilla/mux"
+	"github.com/graphql-go/graphql"
 )
 
 type Responder http.Handler
@@ -30,10 +31,11 @@ type Router struct {
 }
 
 type Config struct {
-	Services     *services.Services
-	Middlewares  middleware.MiddlewareMap
-	ClientID     string
-	ClientSecret string
+	Services      *services.Services
+	Middlewares   middleware.MiddlewareMap
+	GraphqlSchema *graphql.Schema
+	ClientID      string
+	ClientSecret  string
 }
 
 const (
@@ -71,6 +73,7 @@ func NewRoutes(config *Config) ([]*Route, error) {
 		&HomeRoute{Route: Route{Path: "/", Methods: []string{Get}}, StaticFilePath: "./static"},
 		&TestRoute{Route: Route{Path: "/test", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
 		&RefreshTokenRoute{Route: Route{Path: "/token/refresh", Methods: []string{Get}, Middlewares: []middleware.Middleware{config.Middlewares[middleware.ValidateMiddleware]}}},
+		&GraphqlRoute{Route: Route{Path: "/graphql", Methods: []string{Get, Post}}},
 	}
 	hydratedRoutes := InjectServices(routes, config.Services)
 

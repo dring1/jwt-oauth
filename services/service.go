@@ -5,18 +5,20 @@ import (
 	"github.com/dring1/jwt-oauth/cache"
 	"github.com/dring1/jwt-oauth/config"
 	"github.com/dring1/jwt-oauth/database"
+	"github.com/dring1/jwt-oauth/graphql"
 	jsonresponder "github.com/dring1/jwt-oauth/jsonResponder"
 	"github.com/dring1/jwt-oauth/logger"
 	"github.com/dring1/jwt-oauth/token"
 )
 
 type Services struct {
-	UserService   users.Service
-	TokenService  token.Service
-	Cache         *cache.Service
-	Logger        logger.Service
-	JsonResponder jsonresponder.Service
-	Database      *database.Service
+	UserService    users.Service
+	TokenService   token.Service
+	Cache          *cache.Service
+	Logger         logger.Service
+	JsonResponder  jsonresponder.Service
+	Database       *database.Service
+	GraphqlService graphql.Service
 }
 
 func New(c *config.Cfg) (*Services, error) {
@@ -49,16 +51,21 @@ func New(c *config.Cfg) (*Services, error) {
 		Endpoint: c.LoggingEndpoint,
 	}
 	loggerService := logger.NewLoggerService(loggerConfig)
+	graphqlService, err := graphql.NewService(dbService)
+	if err != nil {
+		return nil, err
+	}
 
 	jsonResponder := jsonresponder.NewJsonResponder()
 
 	services := &Services{
-		UserService:   userService,
-		TokenService:  tokenService,
-		Cache:         cacheService,
-		Logger:        loggerService,
-		JsonResponder: jsonResponder,
-		Database:      dbService,
+		UserService:    userService,
+		TokenService:   tokenService,
+		Cache:          cacheService,
+		Logger:         loggerService,
+		JsonResponder:  jsonResponder,
+		Database:       dbService,
+		GraphqlService: graphqlService,
 	}
 	return services, nil
 }

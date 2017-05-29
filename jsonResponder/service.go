@@ -28,6 +28,8 @@ func (j *JsonResponder) Respond(w http.ResponseWriter, r *http.Request) {
 		Value: ctx.Value(contextkeys.Value),
 		Error: ctx.Value(contextkeys.Error),
 	}
+	w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(jsonResponse)
 	_ = err
 }
