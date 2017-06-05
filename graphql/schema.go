@@ -9,8 +9,9 @@ import (
 type Schema map[string]*graphql.Object
 
 func NewSchema(db *database.Service) graphql.Fields {
+	// {cocktail { ingredients : ['rum', 'simple syrup'], tags: ['sweet', 'sour', 'juice', 'summer', 'tiki']}}
 	var cocktailType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "Cocktail",
+		Name: "cocktail",
 		Fields: graphql.Fields{
 			"name": &graphql.Field{
 				Type: graphql.String,
